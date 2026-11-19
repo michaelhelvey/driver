@@ -30,3 +30,19 @@ export function withStatus(text: string, status: string): string {
 
 /** Resolves after `ms` milliseconds. */
 export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Resolves once `read()` returns `want`, checking every 10ms, or rejects with the last value
+ * after `ms` milliseconds.
+ *
+ * @example
+ * await until(() => percentShown(), "37", 1000);
+ */
+export async function until<T>(read: () => T, want: T, ms = 1000): Promise<void> {
+  const deadline = Date.now() + ms;
+  while (read() !== want) {
+    if (Date.now() > deadline) throw new Error(`expected ${String(want)}, got ${String(read())}`);
+    // oxlint-disable-next-line no-await-in-loop
+    await sleep(10);
+  }
+}
