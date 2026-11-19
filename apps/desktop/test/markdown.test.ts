@@ -1,16 +1,24 @@
 import { describe, expect, it } from "bun:test";
 import { htmlOf, renderInline, renderMarkdown, renderRaw } from "../src/markdown.ts";
 
+const TAGS = new Set(
+  "p span a code pre h2 h3 h4 ul ol li strong em del blockquote table thead tbody tr th td br hr".split(
+    " ",
+  ),
+);
+const ATTRIBUTES = new Set(["class", "href", "target", "rel", "start", "align"]);
+
 const inert = (html: string) => {
   const host = document.createElement("div");
   host.innerHTML = html;
+  const elements = [...host.querySelectorAll("*")];
   return {
-    elements: [...host.querySelectorAll("*")].map((el) => el.tagName.toLowerCase()),
-    handlers: [...host.querySelectorAll("*")].flatMap((el) =>
-      [...el.attributes].map((a) => a.name).filter((name) => name.startsWith("on")),
+    unknownTags: elements.map((el) => el.tagName.toLowerCase()).filter((tag) => !TAGS.has(tag)),
+    unknownAttributes: elements.flatMap((el) =>
+      [...el.attributes].map((a) => a.name).filter((name) => !ATTRIBUTES.has(name)),
     ),
     hrefs: [...host.querySelectorAll("[href]")].map((el) => el.getAttribute("href")),
-    text: host.textContent,
+    text: host.textContent?.replace(/\s+/g, " ").trim(),
   };
 };
 
@@ -72,19 +80,108 @@ describe("renderMarkdown escapes agent-written text", () => {
       text: "go",
       hrefs: [`https://a.example/"onmouseover="x`],
     },
+    {
+      name: "an attribute in a code block's language",
+      source: '~~~js" onmouseover="x\n1\n~~~',
+      text: 'js" onmouseover="x1',
+      hrefs: [],
+    },
+    {
+      name: "markup in a code block's language",
+      source: "```<img src=x onerror=alert(1)>\nx\n```",
+      text: "<img src=x onerror=alert(1)>x",
+      hrefs: [],
+    },
+    {
+      name: "html in a heading",
+      source: "## <img src=x onerror=1> {#id onclick=x}",
+      text: "## <img src=x onerror=1> {#id onclick=x}",
+      hrefs: [],
+    },
+    {
+      name: "a link title that breaks out of its quotes",
+      source: `[a](https://x.example "t\\" onmouseover=x")`,
+      text: "a",
+      hrefs: ["https://x.example"],
+    },
+    {
+      name: "html as a link's text",
+      source: "[<img src=x onerror=1>](https://x.example)",
+      text: "<img src=x onerror=1>",
+      hrefs: ["https://x.example"],
+    },
+    {
+      name: "html and a javascript: link in a table",
+      source: "| a | b |\n|---|---|\n| <img src=x onerror=1> | <b>x</b> [y](javascript:1) |",
+      text: "a b <img src=x onerror=1> <b>x</b> y",
+      hrefs: [],
+    },
+    {
+      name: "a javascript: autolink",
+      source: "<javascript:alert(1)>",
+      text: "javascript:alert(1)",
+      hrefs: [],
+    },
+    {
+      name: "a quote in an autolink",
+      source: `<https://x.example/"onmouseover="x>`,
+      text: `https://x.example/"onmouseover="x`,
+      hrefs: [`https://x.example/"onmouseover="x`],
+    },
+    {
+      name: "a bare www link followed by html",
+      source: `www.x.example/"><img src=x>`,
+      text: `www.x.example/"><img src=x>`,
+      hrefs: [`http://www.x.example/">`],
+    },
+    {
+      name: "entity-encoded html",
+      source: "&#x3C;img src=x onerror=1&#x3E; &lt;svg onload=1&gt;",
+      text: "<img src=x onerror=1> &lt;svg onload=1&gt;",
+      hrefs: [],
+    },
+    {
+      name: "backslash-escaped html",
+      source: "\\<img src=x onerror=1>",
+      text: "<img src=x onerror=1>",
+      hrefs: [],
+    },
+    {
+      name: "an html comment before html",
+      source: "<!-- c --><svg onload=alert(1)>",
+      text: "<!-- c --><svg onload=alert(1)>",
+      hrefs: [],
+    },
+    {
+      name: "an html block around markdown",
+      source: "<div onclick=x>\n\n**md**\n\n</div>",
+      text: "<div onclick=x>md </div>",
+      hrefs: [],
+    },
   ])("renders $name inert", (c) => {
     const result = inert(htmlOf(renderMarkdown(c.source)));
-    expect(result.elements).not.toContain("script");
-    expect(result.elements).not.toContain("img");
-    expect(result.handlers).toEqual([]);
+    expect(result.unknownTags).toEqual([]);
+    expect(result.unknownAttributes).toEqual([]);
     expect(result.hrefs).toEqual(c.hrefs);
-    expect(result.text?.trim()).toBe(c.text);
+    expect(result.text).toBe(c.text);
   });
 
-  it("escapes inline markdown the same way", () => {
-    expect(inert(htmlOf(renderInline("<b onclick=x>hi</b> [a](javascript:x)"))).elements).toEqual([
-      "span",
-    ]);
+  it.each([
+    { source: "<b onclick=x>hi</b> [a](javascript:x)", text: "<b onclick=x>hi</b> a" },
+    { source: "`<i>` &#60;svg onload=1&#62; <x:y>", text: "<i> <svg onload=1> <x:y>" },
+  ])("escapes inline markdown the same way: $source", (c) => {
+    const result = inert(htmlOf(renderInline(c.source)));
+    expect(result.unknownTags).toEqual([]);
+    expect(result.unknownAttributes).toEqual([]);
+    expect(result.hrefs).toEqual([]);
+    expect(result.text).toBe(c.text);
+  });
+
+  it("escapes raw files", () => {
+    const text = `---\ntitle: <img src=x onerror=1>\n<b>: x\n---\n\n## <svg onload=1>\n`;
+    const result = inert(htmlOf(renderRaw(text)));
+    expect(result.unknownTags).toEqual([]);
+    expect(result.unknownAttributes).toEqual([]);
   });
 });
 
