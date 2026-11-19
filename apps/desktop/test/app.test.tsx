@@ -56,9 +56,9 @@ it("loads the fixtures, follows a file change and moves the list cursor, with no
       expect(document.activeElement?.textContent).toContain("extension crate (rust)");
 
       press("J", document.body);
-      await until(title, "pdk-2-sentry");
+      await until(title, "billing-ledger-v2");
       press("K", document.body);
-      await until(title, "driver");
+      await until(title, "pdk-2-sentry");
     },
     { scenario: "load, follow a change, move the cursor" },
   );

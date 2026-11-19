@@ -30,7 +30,12 @@ const percentOf = (entry: Entry | null | undefined) =>
 describe("followProjects", () => {
   it("reads every project", async () => {
     const { entries, stop } = await follow();
-    expect([...entries.keys()].toSorted()).toEqual(["driver", "pdk-2-sentry"]);
+    expect([...entries.keys()].toSorted()).toEqual([
+      "billing-ledger-v2",
+      "driver",
+      "onboarding-docs",
+      "pdk-2-sentry",
+    ]);
     expect(percentOf(entries.get("pdk-2-sentry"))).toBe(33);
     stop();
   });
@@ -90,7 +95,10 @@ describe("followProjects", () => {
       { onEntry: (slug, entry) => entries.set(slug, entry), onReady: () => (ready = true) },
       20,
     );
-    expect({ ready, slugs: [...entries.keys()] }).toEqual({ ready: true, slugs: ["driver"] });
+    expect({ ready, slugs: [...entries.keys()].toSorted() }).toEqual({
+      ready: true,
+      slugs: ["billing-ledger-v2", "driver", "onboarding-docs"],
+    });
 
     source.write(SKILLS, withStatus(tree.get(SKILLS) ?? "", "done"));
     await sleep(60);

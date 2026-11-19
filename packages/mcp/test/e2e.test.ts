@@ -138,7 +138,9 @@ describe("driver MCP server over stdio", () => {
   it("answers the read tools from the fixtures", async () => {
     const { projects } = await call("list_projects", {}, ListProjectsOutputSchema);
     expect(projects.map((p) => [p.slug, p.percent])).toEqual([
+      ["billing-ledger-v2", 40],
       ["driver", (await reparse("driver")).progress.percent],
+      ["onboarding-docs", 33],
       ["pdk-2-sentry", 33],
     ]);
     const project = await call("get_project", { slug: "pdk-2-sentry" }, GetProjectOutputSchema);

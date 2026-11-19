@@ -24,6 +24,8 @@ type ProjectCase = {
 const pdk = parseProject(await loadFixture("pdk-2-sentry"));
 const base = await loadFixture("driver");
 const driver = parseProject(base);
+const billing = parseProject(await loadFixture("billing-ledger-v2"));
+const onboarding = parseProject(await loadFixture("onboarding-docs"));
 
 describe("parseProject on fixtures", () => {
   it.each<ProjectCase>([
@@ -55,6 +57,26 @@ describe("parseProject on fixtures", () => {
       needsYou: ["keymap"],
       blocked: [],
     },
+    {
+      name: "billing-ledger-v2",
+      project: billing,
+      progress: { done: 2, total: 5, skipped: 0, percent: 40 },
+      nowIn: "schema",
+      updated: "2026-11-19T06:58:00Z",
+      phases: ["01:discovery 1/1", "02:schema 1/2", "03:cutover 0/2"],
+      needsYou: ["pr-backfill"],
+      blocked: ["reconcile-job"],
+    },
+    {
+      name: "onboarding-docs",
+      project: onboarding,
+      progress: { done: 1, total: 3, skipped: 0, percent: 33 },
+      nowIn: "drafts",
+      updated: "2026-11-14T10:00:00Z",
+      phases: ["01:outline 1/1", "02:drafts 0/2"],
+      needsYou: [],
+      blocked: [],
+    },
   ])("$name: derived values", (c) => {
     expect(c.project.progress).toEqual(c.progress);
     expect(c.project.nowIn).toBe(c.nowIn);
@@ -83,6 +105,9 @@ describe("parseProject on fixtures", () => {
     { project: pdk, id: "ssm-alias", label: "04.1", steps: "0/3", kind: "todo" },
     { project: driver, id: "html-mockup", label: "02.1", steps: "3/4", kind: "doing" },
     { project: driver, id: "fs-watch", label: "03.2", steps: "0/0", kind: "todo" },
+    { project: billing, id: "pr-backfill", label: "02.2", steps: "1/2", kind: "needs-you" },
+    { project: billing, id: "reconcile-job", label: "03.1", steps: "0/0", kind: "blocked" },
+    { project: onboarding, id: "first-deploy", label: "02.2", steps: "0/0", kind: "todo" },
   ])("task $id is $label with $steps steps", (c) => {
     const task = taskOf(c.project, c.id);
     expect(task.label).toBe(c.label);
@@ -104,6 +129,8 @@ describe("parseProject on fixtures", () => {
   it.each([
     { name: "pdk-2-sentry", project: pdk },
     { name: "driver", project: driver },
+    { name: "billing-ledger-v2", project: billing },
+    { name: "onboarding-docs", project: onboarding },
   ])("$name: writing the parsed project reproduces every file byte for byte", async (c) => {
     const files = await loadFixture(c.name);
     const paths = refPaths(c.project);
