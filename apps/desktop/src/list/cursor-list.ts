@@ -68,7 +68,6 @@ export const cursorList = definePrimitive({
   controlled: ["cursor"],
   state: (options: CursorListOptions) => ({
     cursor: options.cursor ?? options.defaultCursor ?? null,
-    focused: null as string | null,
   }),
   sync: (options) => (options.cursor === undefined ? {} : { cursor: options.cursor }),
   api: (context) => {
@@ -80,7 +79,7 @@ export const cursorList = definePrimitive({
     let holding = false;
     const roving = createRovingFocus(context, {
       slot: "row",
-      key: "focused",
+      key: "cursor",
       remember: false,
       move,
       preferred: (row) => row.key === context.store.get().cursor,
