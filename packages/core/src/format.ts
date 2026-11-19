@@ -8,7 +8,7 @@ import {
   type TaskFrontmatter,
 } from "./schemas.ts";
 
-const FRONTMATTER = /^---\n([\s\S]*?)\n?---(?:\n|$)([\s\S]*)$/;
+const FRONTMATTER = /^---\n(?:([\s\S]*?)\n)?---(?:\n|$)([\s\S]*)$/;
 const HEADING = /^## /m;
 const STEP = /^\s*[-*] \[([ xX])\]/gm;
 
@@ -56,11 +56,11 @@ export function readDoc<S extends z.ZodType>(
   schema: S,
 ): { data: z.infer<S>; body: string } {
   const [, yaml, body] = FRONTMATTER.exec(text) ?? fail(`${path}: no frontmatter`);
-  return { data: parseAt(path, schema, readYaml(path, yaml)), body: String(body).trim() };
+  return { data: parseAt(path, schema, readYaml(path, yaml ?? "")), body: String(body).trim() };
 }
 
-const readYaml = (path: string, yaml: string | undefined): unknown => {
-  const doc = YAML.parseDocument(String(yaml));
+const readYaml = (path: string, yaml: string): unknown => {
+  const doc = YAML.parseDocument(yaml);
   const error = doc.errors[0];
   return error === undefined ? doc.toJS() : fail(`${path}: ${error.message}`);
 };

@@ -92,6 +92,22 @@ describe("planApply", () => {
     );
   });
 
+  it.each([
+    { name: "task title", op: { op: "task", id: "t4-coa", title: "t4-coa ---" } },
+    {
+      name: "ask",
+      op: { op: "task", id: "t4-coa", status: { kind: "needs-you", ask: "keep it? ---" } },
+    },
+    { name: "phase title", op: { op: "phase", id: "cleanup", title: "cleanup ---" } },
+    { name: "body that starts with ---", op: { op: "task", id: "t4-coa", body: "---\n- [ ] a" } },
+  ])("reads back a $name that has --- in it", (c) => {
+    const { op, ...fields } = c.op;
+    const { project } = run([c.op]);
+    const item =
+      op === "phase" ? project.phases.find((p) => p.id === fields.id) : task(project, fields.id);
+    expect(item).toMatchObject(fields);
+  });
+
   it("updates fields and leaves the rest unchanged", () => {
     const { project } = run([{ op: "task", id: "t4-coa", pr: "#52", title: "t4-coa (merged)" }]);
     const after = task(project, "t4-coa");
