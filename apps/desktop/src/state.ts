@@ -4,7 +4,7 @@ import type { FileSource } from "./source/source.ts";
 
 /** The app's view of the root directory, kept current by {@link createProjects}. */
 export type Projects = {
-  /** Every project, by slug. */
+  /** Every project, most recently updated first (projects that do not parse last). */
   list: Accessor<Entry[]>;
   /** Whether the first read finished. */
   ready: Accessor<boolean>;
@@ -12,7 +12,10 @@ export type Projects = {
   failure: Accessor<string | null>;
 };
 
-const bySlug = (a: Entry, b: Entry) => a.slug.localeCompare(b.slug);
+const updatedOf = (entry: Entry) => (entry.kind === "ok" ? entry.project.updated : "");
+
+const byRecent = (a: Entry, b: Entry) =>
+  updatedOf(b).localeCompare(updatedOf(a)) || a.slug.localeCompare(b.slug);
 
 /**
  * Follows every project of `source` for the life of the calling component.
@@ -49,6 +52,6 @@ export function createProjects(source: () => FileSource): Projects {
       );
   });
 
-  const list = createMemo(() => [...entries().values()].toSorted(bySlug), { name: "list" });
+  const list = createMemo(() => [...entries().values()].toSorted(byRecent), { name: "list" });
   return { list, ready, failure };
 }
