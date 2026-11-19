@@ -1,6 +1,6 @@
 import { readFrontmatter, type Project, type Status } from "@driver/core";
 import type { JSX } from "@solidjs/web";
-import { For, Match, Show, Switch } from "solid-js";
+import { createMemo, For, Match, Show, Switch } from "solid-js";
 import { Html } from "./html.tsx";
 import { renderMarkdown, renderRaw } from "./markdown.ts";
 import { Pane } from "./pane.tsx";
@@ -119,7 +119,7 @@ function PhaseTasks(props: ReaderProps) {
 }
 
 function Rendered(props: ReaderProps) {
-  const doc = () => readFrontmatter(props.row.path, props.text);
+  const doc = createMemo(() => readFrontmatter(props.row.path, props.text));
   const title = () => {
     const value = doc().data["title"];
     return typeof value === "string" ? value : props.row.path;

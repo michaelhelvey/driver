@@ -226,15 +226,15 @@ function Recent(props: { page: PageProps }) {
         data-kind="log"
         class={[ROW, "-mx-4 rounded-[10px] px-4 pt-1.5 pb-2 data-cursor:bg-focus"]}
       >
-        <For each={entries()} keyed={(entry) => `${entry.at} ${entry.text}`}>
+        <For each={entries()} keyed={false}>
           {(entry, i) => (
             <div class="grid grid-cols-[4ch_minmax(0,1fr)] gap-3.5 py-0.5 text-[12.5px]">
-              <span class={["text-right", i() === 0 ? "text-muted" : "text-faint"]}>
+              <span class={["text-right", i === 0 ? "text-muted" : "text-faint"]}>
                 {ago(entry().at, props.page.now)}
               </span>
               <Html
                 as="span"
-                class={["inline-plain truncate", i() === 0 ? "text-ink-2" : "text-muted"]}
+                class={["inline-plain truncate", i === 0 ? "text-ink-2" : "text-muted"]}
                 html={renderInline(entry().text.split("\n").join(" "))}
               />
             </div>
