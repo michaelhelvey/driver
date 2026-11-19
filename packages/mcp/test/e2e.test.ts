@@ -39,6 +39,7 @@ const LogLineSchema = z.strictObject({
 let root = "";
 let client = new Client({ name: "driver-e2e", version: "0" });
 let stderr: string[] = [];
+let transportErrors: string[] = [];
 
 const pdk = (path = "") => join(root, "pdk-2-sentry", path);
 
@@ -109,12 +110,16 @@ beforeEach(async () => {
     stderr.push(...chunk.toString().split("\n").filter(Boolean));
   });
   client = new Client({ name: "driver-e2e", version: "0" });
+  transportErrors = [];
+  // oxlint-disable-next-line unicorn/prefer-add-event-listener -- Client is not an EventTarget
+  client.onerror = (error) => transportErrors.push(error.message);
   await client.connect(transport);
 });
 
 afterEach(async () => {
   await client.close();
   await rm(root, { recursive: true, force: true });
+  expect(transportErrors).toEqual([]);
 });
 
 describe("driver MCP server over stdio", () => {
