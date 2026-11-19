@@ -181,7 +181,7 @@ test("drives every key of the sheet with no mouse", async ({ page }) => {
     await keys(page, "g", "n");
     await expect(title(page)).toHaveText("driver");
     await expectCursor(page, "task:keymap");
-    await expect(readerPath(page)).toHaveText(`${ROOT}/driver/02-mockup/02-keymap.md`);
+    await expect(readerPath(page)).toHaveText(`${ROOT}/driver/02-prototype/02-keymap.md`);
     await keys(page, "g", "n");
     await expect(title(page)).toHaveText("pdk-2-sentry");
     await expectCursor(page, "task:t4-agent-skills");

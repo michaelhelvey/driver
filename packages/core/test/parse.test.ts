@@ -52,9 +52,9 @@ describe("parseProject on fixtures", () => {
       name: "driver",
       project: driver,
       progress: { done: 2, total: 6, skipped: 0, percent: 33 },
-      nowIn: "mockup",
+      nowIn: "prototype",
       updated: "2026-11-19T07:39:00Z",
-      phases: ["01:file-format 2/2", "02:mockup 0/2", "03:mcp 0/2"],
+      phases: ["01:file-format 2/2", "02:prototype 0/2", "03:mcp 0/2"],
       needsYou: ["keymap"],
       blocked: [],
     },
@@ -104,7 +104,7 @@ describe("parseProject on fixtures", () => {
     { project: pdk, id: "t4-nip-review", label: "03b.3", steps: "0/5", kind: "todo" },
     { project: pdk, id: "t4-user-info", label: "03c.2", steps: "0/4", kind: "blocked" },
     { project: pdk, id: "ssm-alias", label: "04.1", steps: "0/3", kind: "todo" },
-    { project: driver, id: "html-mockup", label: "02.1", steps: "3/4", kind: "doing" },
+    { project: driver, id: "html-prototype", label: "02.1", steps: "3/4", kind: "doing" },
     { project: driver, id: "fs-watch", label: "03.2", steps: "0/0", kind: "todo" },
     { project: billing, id: "pr-backfill", label: "02.2", steps: "1/2", kind: "needs-you" },
     { project: billing, id: "reconcile-job", label: "03.1", steps: "0/0", kind: "blocked" },
@@ -179,16 +179,16 @@ describe("parseProject on transient and bad trees", () => {
   it.each([
     { name: "lock file", path: ".lock", text: "" },
     { name: "temp file", path: ".tmp-0-01-frontmatter.md", text: "garbage" },
-    { name: "temp in a phase", path: "02-mockup/.tmp-3-02-keymap.md", text: "garbage" },
+    { name: "temp in a phase", path: "02-prototype/.tmp-3-02-keymap.md", text: "garbage" },
     { name: "hidden folder", path: ".git/HEAD", text: "ref" },
-    { name: "Finder file", path: "02-mockup/.DS_Store", text: "\u0000" },
+    { name: "Finder file", path: "02-prototype/.DS_Store", text: "\u0000" },
   ])("ignores a $name", (c) => {
     expect(parseProject(withFiles({ [c.path]: c.text })).progress).toEqual(driver.progress);
   });
 
   it("keeps the first copy of an id seen at its old and new path mid-rename", () => {
-    const keymap = base.get("02-mockup/02-keymap.md") ?? "";
-    const project = parseProject(withFiles({ "02-mockup/03-keymap.md": keymap }));
+    const keymap = base.get("02-prototype/02-keymap.md") ?? "";
+    const project = parseProject(withFiles({ "02-prototype/03-keymap.md": keymap }));
     expect(project.tasks.filter((t) => t.id === "keymap").map((t) => t.label)).toEqual(["02.2"]);
     expect(project.tasks).toHaveLength(driver.tasks.length);
   });
