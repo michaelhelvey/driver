@@ -1,4 +1,12 @@
 export {
+  executePlan,
+  planApply,
+  planCreate,
+  type ApplyError,
+  type Plan,
+  type Step,
+} from "./apply.ts";
+export {
   comparePrefix,
   parseProject,
   refPaths,
