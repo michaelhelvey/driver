@@ -18,11 +18,14 @@ import { CreateProjectInputSchema } from "./tools.ts";
  * directory.
  *
  * - `write`: write `content` to the temp file `path`.
- * - `rename`: move `from` to `to`, creating the parent folder of `to`. Replaces `to`.
+ * - `move`: renumber: move the file `from` to `to`, creating the parent folder of `to`. `to` never
+ *   exists; fail if it does.
+ * - `rename`: move the temp file `from` to `to`, creating the parent folder of `to`. Replaces `to`.
  * - `remove`: delete the folder `path`, which is empty by then.
  */
 export type Step =
   | { kind: "write"; path: string; content: string }
+  | { kind: "move"; from: string; to: string }
   | { kind: "rename"; from: string; to: string }
   | { kind: "remove"; path: string };
 
@@ -213,7 +216,7 @@ const steps = (before: Map<string, string>, after: Project, refs: ReadonlySet<st
   const isNew = (write: { ref: string }): boolean => !before.has(write.ref);
   const moves = [...paths].flatMap(([ref, to]) => {
     const from = before.get(ref);
-    return from === undefined || from === to ? [] : [{ kind: "rename" as const, from, to }];
+    return from === undefined || from === to ? [] : [{ kind: "move" as const, from, to }];
   });
   const folders = new Set([...paths.values()].map(folder));
   const gone = new Set([...before.values()].map(folder).filter((dir) => !folders.has(dir)));
@@ -306,21 +309,28 @@ const rename = (files: Map<string, string>, from: string, to: string): void => {
   files.delete(from);
 };
 
-const runStep = (files: Map<string, string>, step: Step): void => {
-  switch (step.kind) {
-    case "write":
-      files.set(step.path, step.content);
-      return;
-    case "rename":
-      rename(files, step.from, step.to);
-      return;
-    case "remove":
-      check(
-        [...files.keys()].every((path) => !path.startsWith(`${step.path}/`)),
-        `remove: ${step.path} is not empty`,
-      );
-  }
+const RUN: {
+  [K in Step["kind"]]: (files: Map<string, string>, step: Extract<Step, { kind: K }>) => void;
+} = {
+  write: (files, step) => {
+    files.set(step.path, step.content);
+  },
+  move: (files, step) => {
+    check(!files.has(step.to), `move: ${step.to} exists`);
+    rename(files, step.from, step.to);
+  },
+  rename: (files, step) => rename(files, step.from, step.to),
+  remove: (files, step) =>
+    check(
+      [...files.keys()].every((path) => !path.startsWith(`${step.path}/`)),
+      `remove: ${step.path} is not empty`,
+    ),
 };
+
+const runStep = <K extends Step["kind"]>(
+  files: Map<string, string>,
+  step: Extract<Step, { kind: K }>,
+): void => RUN[step.kind](files, step);
 
 /**
  * Runs a plan's steps against an in-memory file map and returns the new map. The MCP server runs

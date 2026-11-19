@@ -14,7 +14,7 @@ const STAMP = "2026-11-20T09:00:00Z";
 const files = await loadFixture("pdk-2-sentry");
 const current = parseProject(files);
 
-const run = (ops: unknown[], log = "something happened.") => {
+const run = (ops: readonly unknown[], log = "something happened.") => {
   const result = planApply(current, { log, ops }, NOW);
   if (result.kind === "error") throw new Error(result.message);
   result.steps.forEach((_, i) => {
@@ -31,11 +31,9 @@ const frontmatterKeys = (text: string | undefined): string[] =>
       ?.matchAll(/^(\w+):/gm) ?? []),
   ].map((match) => String(match[1]));
 
-const stepRank = (step: Plan["steps"][number]): number => {
-  if (step.kind === "write") return 0;
-  if (step.kind === "remove") return 3;
-  return step.from.startsWith(".tmp-") ? 2 : 1;
-};
+const STEP_RANK = { write: 0, move: 1, rename: 2, remove: 3 } as const;
+
+const stepRank = (step: Plan["steps"][number]): number => STEP_RANK[step.kind];
 
 describe("planApply", () => {
   it("marks t4-agent-skills done: 37%, updated set, log appended, round-trips", () => {
@@ -90,9 +88,7 @@ describe("planApply", () => {
     ]);
     expect(project.phases.at(-1)?.path).toBe("05-follow-up");
     expect(task(project, "docs")).toMatchObject({ label: "05.1", steps: { done: 1, total: 2 } });
-    expect(plan.steps.filter((s) => s.kind === "rename" && !s.from.startsWith(".tmp-"))).toEqual(
-      [],
-    );
+    expect(plan.steps.filter((s) => s.kind === "move")).toEqual([]);
   });
 
   it.each([
@@ -124,7 +120,7 @@ describe("planApply", () => {
     expect(task(project, "t4-user-info").path).toBe("03a-framework-apps/08-t4-user-info.md");
     expect(task(project, "t4-lower-enviroment-refresh").label).toBe("03c.3");
     expect(plan.steps).toContainEqual({
-      kind: "rename",
+      kind: "move",
       from: "03c-pdk-bump/02-t4-user-info.md",
       to: "03a-framework-apps/08-t4-user-info.md",
     });
@@ -136,6 +132,32 @@ describe("planApply", () => {
       { op: "task", id: "t4-coa", phase: "follow-up" },
     ]);
     expect(task(project, "t4-coa").path).toBe("05-follow-up/01-t4-coa.md");
+  });
+
+  it.each([
+    {
+      name: "swap 01 and 02 in a phase",
+      ops: [{ op: "task", id: "t4-coa", after: "t4-developer-dashboard" }],
+      paths: {
+        "t4-developer-dashboard": "03a-framework-apps/01-t4-developer-dashboard.md",
+        "t4-coa": "03a-framework-apps/02-t4-coa.md",
+      },
+    },
+    {
+      name: "move a task across phases while both phases renumber",
+      ops: [
+        { op: "phase", id: "pdk-bump", after: "pdk-2.0" },
+        { op: "task", id: "t4-coa", phase: "pdk-bump", after: "help-desk-auto-triage" },
+      ],
+      paths: {
+        "t4-coa": "01-pdk-bump/02-t4-coa.md",
+        "t4-user-info": "01-pdk-bump/03-t4-user-info.md",
+        "t4-developer-dashboard": "04-framework-apps/02-t4-developer-dashboard.md",
+      },
+    },
+  ])("never moves a file onto another: $name", (c) => {
+    const { project } = run(c.ops);
+    for (const [id, path] of Object.entries(c.paths)) expect(task(project, id).path).toBe(path);
   });
 
   it("reorders a task with after and renumbers the phase", () => {
