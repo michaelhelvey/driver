@@ -302,7 +302,8 @@ export function planApply(current: Project, input: unknown, now: Date): Plan | A
 }
 
 /**
- * Returns the steps that create a new project: `project.md` and an empty `log.md`. `input` is
+ * Returns the steps that create a new project: an empty `log.md`, then `project.md`. A directory
+ * is a project once it has a `project.md`, so a reader never sees one without its log. `input` is
  * validated with {@link CreateProjectInputSchema}. The caller checks that the slug is free.
  *
  * @example
@@ -315,7 +316,7 @@ export function planCreate(input: unknown, now: Date): Plan | ApplyError {
   const at = stamp(now);
   const meta = { title, repo, rex, started: at.slice(0, 10), updated: at };
   const project = derive({ meta, summary, body: "", phases: [], log: [] });
-  return steps(new Map(), project, new Set(["project", "log"]));
+  return steps(new Map(), project, new Set(["log", "project"]));
 }
 
 const rename = (files: Map<string, string>, from: string, to: string): void => {

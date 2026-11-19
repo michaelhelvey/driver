@@ -406,5 +406,9 @@ describe("planCreate", () => {
     });
     expect(project.meta.rex).toBe(c.rex);
     expect(created.get("project.md")?.includes("rex:")).toBe(c.line !== undefined);
+    expect(plan.steps.flatMap((s) => (s.kind === "rename" ? [s.to] : []))).toEqual([
+      "log.md",
+      "project.md",
+    ]);
   });
 });
