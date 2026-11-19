@@ -72,16 +72,24 @@ bun scripts/setup-e2e.ts            # builds the app (about 2 min warm)
 bun scripts/setup-e2e.ts --no-app   # MCP registration only, seconds
 ```
 
-It points `HOME`, `XDG_*_HOME` and `DRIVER_APPLICATIONS_DIR` at a temp dir, seeds an OpenCode config
-with a comment and an unrelated server, then runs setup: twice (the second run must leave the config
-byte-identical and unwritten), once after pointing `driver` at a stale checkout path with an
-`environment` (must re-register this checkout and keep the environment), and once more with
-`--no-app` (unchanged again). It prints the resulting config, then starts the server exactly as the
-config says with the MCP client SDK and asserts `instructions` and `list_projects`. The "decide
-whether to re-register" logic is table-tested in `scripts/opencode.test.ts` (part of
-`bun run test`). It does not cover quitting and restarting a running app; to check that, start
-`<temp>/Applications/driver.app/Contents/MacOS/driver-desktop`, run setup with
-`DRIVER_APPLICATIONS_DIR=<temp>/Applications`, and see `(restarted it)` and a new pid.
+It points `HOME`, `XDG_*_HOME` and `DRIVER_APPLICATIONS_DIR` at a temp dir and seeds a synthetic
+`opencode.json` shaped like a real one (V1 and V2 keys, local and remote servers, a header). Then:
+
+1. First run: `driver` is added with no `environment` (the server defaults to `~/.driver`), every
+   other key and server parses back unchanged, and the server starts exactly as the config says with
+   `instructions` and `list_projects` checked over the MCP client SDK.
+2. Rerun (with the app: while the installed app runs, which must print `(restarted it)` with a new
+   pid): config byte-identical and unwritten.
+3. After pointing `driver` at a stale checkout with an `environment`: re-registered, environment
+   kept. A `--no-app` rerun leaves it unchanged.
+4. An `opencode.jsonc` with comments: written there, comments kept.
+5. Both files, with a stale `driver` in `opencode.jsonc` (which `opencode mcp add --global` does not
+   write when `opencode.json` exists): setup fails naming `opencode.jsonc`; after following its fix,
+   it passes.
+
+The "decide whether to re-register" logic is table-tested in `scripts/opencode.test.ts` (part of
+`bun run test`). If the real `/Applications/driver.app` is running, `open` may focus it instead of
+launching the temp copy; quit it before a full run.
 
 ## Browser dev build
 
