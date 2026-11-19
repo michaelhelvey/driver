@@ -19,8 +19,8 @@ export type NavigationDeps = {
   notify: Notify;
   /** Every project, in sidebar order. */
   entries: Accessor<Entry[]>;
-  /** The open project, when it parses. */
-  open: Accessor<OkEntry | undefined>;
+  /** The project the page shows, whether it parses or not. */
+  current: Accessor<Entry | undefined>;
   select: (slug: string) => void;
   /** The rows the cursor can be on now: filtered, without folded tasks. */
   visible: Accessor<Row[]>;
@@ -77,12 +77,16 @@ const errorText = (error: unknown) => (error instanceof Error ? error.message : 
  * cursor row, so the list's own keys keep working from there.
  *
  * @example
- * const nav = createNavigation({ root: () => root, view, clipboard: () => clipboard, notify, entries, open, select, visible, cursor, folded });
+ * const nav = createNavigation({ root: () => root, view, clipboard: () => clipboard, notify, entries, current, select, visible, cursor, folded });
  * bindKeymap(document, () => listKeys(nav));
  */
 export function createNavigation(deps: NavigationDeps): Navigation {
   const { view, notify } = deps;
-  const slug = () => deps.open()?.slug;
+  const open = (): OkEntry | undefined => {
+    const entry = deps.current();
+    return entry?.kind === "ok" ? entry : undefined;
+  };
+  const slug = () => open()?.slug;
   const inOpen = (run: (slug: string) => void) => {
     const current = slug();
     if (current !== undefined) run(current);
@@ -105,7 +109,7 @@ export function createNavigation(deps: NavigationDeps): Navigation {
   };
   const step = (by: number) => {
     const entries = deps.entries();
-    const at = entries.findIndex((entry) => entry.slug === slug());
+    const at = entries.findIndex((entry) => entry.slug === deps.current()?.slug);
     const next = entries[(at + by + entries.length) % entries.length];
     if (next !== undefined) selectProject(next.slug);
   };
@@ -143,7 +147,7 @@ export function createNavigation(deps: NavigationDeps): Navigation {
     else inOpen((current) => reveal(current, by));
   };
   const logFile = () => {
-    if (deps.open()?.project.log.length) openRow("log");
+    if (open()?.project.log.length) openRow("log");
     else notify.info("no log.md in this project");
   };
   const fold = () => {
@@ -160,8 +164,7 @@ export function createNavigation(deps: NavigationDeps): Navigation {
     if (!view.state.reader.open) cursorKey(view.open);
     focusSoon(readerPane);
   };
-  const copyPath = () => {
-    const path = `${deps.root()}/${slug() ?? ""}/${deps.cursor()?.path ?? "project.md"}`;
+  const copy = (path: string) =>
     deps
       .clipboard()
       .writeText(path)
@@ -169,6 +172,10 @@ export function createNavigation(deps: NavigationDeps): Navigation {
         () => notify.info("copied", path),
         (error: unknown) => notify.error("could not copy the path:", errorText(error)),
       );
+  const copyPath = () => {
+    const entry = deps.current();
+    if (entry !== undefined)
+      void copy(`${deps.root()}/${entry.slug}/${deps.cursor()?.path ?? "project.md"}`);
   };
   const filter = () => {
     view.setEditing(true);

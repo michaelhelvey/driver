@@ -273,6 +273,33 @@ it.each<[string, (copied: string[]) => Promise<void>]>([
   expectNoDiagnostics(artifact);
 });
 
+const mountBroken = async () => {
+  const mounted = await mount();
+  mounted.source.write("onboarding-docs/project.md", "not a project");
+  mounted.source.write("pdk-2-sentry/project.md", "not a project");
+  dispose = mounted.show();
+  await until(title, "driver");
+  press("3", document.body);
+  await until(title, "onboarding-docs");
+  expect(document.querySelector("main [role=alert]")).not.toBeNull();
+  return mounted;
+};
+
+it.each([
+  ["J", "pdk-2-sentry"],
+  ["K", "billing-ledger-v2"],
+])("%s steps from a project that does not parse to its neighbour", async (key, next) => {
+  await mountBroken();
+  press(key, document.body);
+  await until(title, next);
+});
+
+it("y copies project.md of a project that does not parse", async () => {
+  const { copied } = await mountBroken();
+  press("y", document.body);
+  await until(() => copied.at(-1), "fixtures/onboarding-docs/project.md");
+});
+
 it("says where it looks, and when to restart, when the root has no projects", async () => {
   const root = document.body.appendChild(document.createElement("div"));
   dispose = render(

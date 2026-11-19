@@ -168,7 +168,7 @@ export function App(props: { source: FileSource; clipboard: Clipboard }) {
     clipboard: () => props.clipboard,
     notify: toasts.notify,
     entries: projects.list,
-    open,
+    current,
     select: setSelected,
     visible,
     cursor,
