@@ -1,0 +1,16 @@
+{
+  "name": "@driver/mcp",
+  "private": true,
+  "bin": {
+    "driver-mcp": "./src/main.ts"
+  },
+  "type": "module",
+  "scripts": {
+    "start": "bun src/main.ts"
+  },
+  "dependencies": {
+    "@driver/core": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
+  }
+}
