@@ -8,7 +8,9 @@ const USAGE = `bun scripts/parity.ts [--out dir] [--url http://localhost:1431/] 
 
 Screenshots mockups/driver.html and the browser build on the fixtures in the same state, and
 writes <out>/<project>-<theme>-<state>.png: mockup | app | diff, plus report.json with the share
-of pixels that differ in each pair. Without --url it starts its own dev server.`;
+of pixels that differ in each pair. Without --url it starts its own dev server. Exits 1 when a
+page logs an error (ResizeObserver loops included) or a pair differs by more than its state's
+budget.`;
 
 const DESKTOP = join(import.meta.dir, "..");
 const MOCKUP = `file://${join(DESKTOP, "..", "..", "mockups", "driver.html")}`;
@@ -17,10 +19,13 @@ const VIEWPORT = { width: 1280, height: 820 };
 const SCALE = 2;
 const THRESHOLD = 40;
 
+const BUDGETS = { page: 0.35, phases: 0.35, reader: 1.5, raw: 3.6 } as const;
+
 type Shot = {
   name: string;
   project: string;
   theme: "paper" | "cocoa";
+  state: keyof typeof BUDGETS;
   keys: string[];
   scroll?: number;
 };
@@ -35,11 +40,19 @@ const PROJECTS = [
 const SHOTS: Shot[] = PROJECTS.flatMap(({ project, select, reader }) =>
   (["paper", "cocoa"] as const).flatMap((theme) => {
     const base = theme === "cocoa" ? [select, "t"] : [select];
+    const shot = (state: Shot["state"], keys: string[], scroll?: number): Shot => ({
+      name: `${project}-${theme}-${state}`,
+      project,
+      theme,
+      state,
+      keys,
+      ...(scroll === undefined ? {} : { scroll }),
+    });
     return [
-      { name: `${project}-${theme}-page`, project, theme, keys: base },
-      { name: `${project}-${theme}-phases`, project, theme, keys: base, scroll: 640 },
-      { name: `${project}-${theme}-reader`, project, theme, keys: [...base, ...reader] },
-      { name: `${project}-${theme}-raw`, project, theme, keys: [...base, ...reader, "r"] },
+      shot("page", base),
+      shot("phases", base, 640),
+      shot("reader", [...base, ...reader]),
+      shot("raw", [...base, ...reader, "r"]),
     ];
   }),
 );
@@ -116,12 +129,16 @@ const capture = async (
     colorScheme: "light",
     reducedMotion: "reduce",
   });
+  await context.addInitScript(() =>
+    window.addEventListener("error", (event) => console.error(`window error: ${event.message}`)),
+  );
   const page = await context.newPage();
   const problems: string[] = [];
   page.on("console", (m) => void (m.type() === "error" && problems.push(m.text())));
   page.on("pageerror", (error) => problems.push(error.message));
   try {
     await shoot(page);
+    await page.evaluate(async () => document.fonts.ready);
     await page.waitForTimeout(1000);
     await page.mouse.move(0, VIEWPORT.height - 1);
     return { png: await page.screenshot(), problems };
@@ -205,7 +222,13 @@ const browser = await chromium.launch({ channel: "chrome", args: ["--hide-scroll
 await mkdir(join(values.out, "single"), { recursive: true });
 
 try {
-  const report: { name: string; percent: number; file: string; problems: string[] }[] = [];
+  const report: {
+    name: string;
+    percent: number;
+    budget: number;
+    file: string;
+    problems: string[];
+  }[] = [];
   for (const shot of SHOTS.filter((s) => s.name.includes(values.only))) {
     // oxlint-disable-next-line no-await-in-loop
     const mock = await capture(browser, (page) => shootMockup(page, shot));
@@ -221,12 +244,21 @@ try {
       writeFile(join(values.out, "single", `${shot.name}.app.png`), app.png),
     ]);
     const percent = Math.round(compared.percent * 100) / 100;
-    report.push({ name: shot.name, percent, file, problems: [...mock.problems, ...app.problems] });
-    console.log(`${percent.toFixed(2).padStart(6)}%  ${file}`);
+    const budget = BUDGETS[shot.state];
+    const problems = [...mock.problems.map((p) => `mockup: ${p}`), ...app.problems];
+    report.push({ name: shot.name, percent, budget, file, problems });
+    const over = percent > budget ? `  OVER ${budget}%` : "";
+    console.log(`${percent.toFixed(2).padStart(6)}%  ${file}${over}`);
   }
   await writeFile(join(values.out, "report.json"), `${JSON.stringify(report, null, 2)}\n`);
-  const problems = report.flatMap((r) => r.problems.map((p) => `${r.name}: ${p}`));
-  if (problems.length > 0) console.error(`console errors:\n${problems.join("\n")}`);
+  const failures = [
+    ...report.flatMap((r) => r.problems.map((p) => `${r.name}: ${p}`)),
+    ...report.filter((r) => r.percent > r.budget).map((r) => `${r.name}: over ${r.budget}%`),
+  ];
+  if (failures.length > 0) {
+    console.error(`parity failed:\n${failures.join("\n")}`);
+    process.exitCode = 1;
+  }
 } finally {
   await browser.close();
   await server?.stop();

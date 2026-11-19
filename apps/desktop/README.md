@@ -53,7 +53,10 @@ shows an error in the window.
   writes `<out>/<project>-<theme>-<state>.png` (mockup | app | diff in red), the single shots under
   `<out>/single/`, and `report.json` with the share of pixels that differ. It starts its own dev
   server on port 1432 unless you pass `--url`. Default `--out` is `apps/desktop/parity/`
-  (git-ignored). What remains after a run is text that differs on purpose; see "Parity residuals".
+  (git-ignored). It exits 1 when either page logs an error (a `window` error event included, so a
+  ResizeObserver loop counts) or a pair is over its state's budget (`BUDGETS`, the numbers under
+  "Parity residuals"). What remains after a run is text that differs on purpose; see "Parity
+  residuals".
 - `scripts/e2e.ts`: copies the fixtures to a temp `DRIVER_ROOT` and runs `wdio` (called by
   `bun run e2e:desktop` after the e2e build).
 
