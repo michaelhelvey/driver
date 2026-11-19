@@ -1,7 +1,21 @@
 import { render } from "@solidjs/web";
+import { App, Unreadable } from "./app.tsx";
+import type { FileSource } from "./source/source.ts";
 import "./styles.css";
+
+const source = async (): Promise<FileSource> =>
+  "__TAURI_INTERNALS__" in window
+    ? (await import("./source/tauri.ts")).tauriSource()
+    : (await import("./source/fixtures.ts")).fixtureSource();
 
 const root = document.querySelector("#root");
 if (root === null) throw new Error("no #root element");
 
-render(() => <main class="p-8 text-ink">driver</main>, root);
+try {
+  const files = await source();
+  render(() => <App source={files} />, root);
+} catch (error) {
+  console.error("driver: no root", error);
+  const message = error instanceof Error ? error.message : String(error);
+  render(() => <Unreadable message={message} />, root);
+}

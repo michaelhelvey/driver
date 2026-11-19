@@ -36,7 +36,11 @@ const walk = async (dir: string, prefix = ""): Promise<[string, string][]> => {
  * source.root; // "/Users/me/.driver"
  */
 export async function tauriSource(): Promise<FileSource> {
-  const root = z.string().parse(await invoke("root"));
+  const root = z.string().parse(
+    await invoke("root").catch((error: unknown) => {
+      throw new Error(String(error));
+    }),
+  );
 
   const readProject = async (slug: string): Promise<ProjectFiles | null> => {
     const dir = `${root}/${slug}`;
