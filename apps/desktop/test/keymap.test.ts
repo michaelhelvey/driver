@@ -11,12 +11,14 @@ const TARGETS: Record<string, string> = {
   editable: "<div contenteditable>e</div>",
   "inside editable": "<div contenteditable><b>e</b></div>",
   dialog: "<div role='dialog'><button>b</button></div>",
+  handle: "<div role='separator' tabindex='0'></div>",
 };
 
 const KEYMAP = (ran: string[]) => ({
   t: () => ran.push("t"),
   J: () => ran.push("J"),
   " ": () => ran.push("space"),
+  Enter: () => ran.push("Enter"),
   Escape: () => ran.push("Escape"),
   G: () => ran.push("G"),
   "g g": () => ran.push("top"),
@@ -65,6 +67,11 @@ describe("bindKeymap", () => {
     ["dialog", { key: "t" }, []],
     ["dialog", { key: "k", metaKey: true }, []],
     ["body", { key: " " }, ["space"]],
+    ["body", { key: "Enter" }, ["Enter"]],
+    ["button", { key: "Enter" }, []],
+    ["button", { key: " " }, []],
+    ["handle", { key: "Enter" }, []],
+    ["handle", { key: "t" }, ["t"]],
     ["body", { key: "Escape" }, ["Escape"]],
     ["input", { key: " " }, []],
     ["input", { key: "Escape" }, []],

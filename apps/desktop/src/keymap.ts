@@ -31,10 +31,21 @@ export function chordOf(event: KeyboardEvent): string {
   return [...mods.filter((mod) => mod !== false), event.key].join("+");
 }
 
+const CONTROL = "button, a[href], [role=button], [role=separator]";
+
+const presses = (target: EventTarget | null, chord: string) =>
+  (chord === "Enter" || chord === " ") &&
+  target instanceof Element &&
+  target.closest(CONTROL) !== null;
+
+const types = (target: EventTarget | null, chord: string) =>
+  isTyping(target) && !chord.startsWith("mod+");
+
 const ignores = (event: KeyboardEvent, chord: string) =>
   event.defaultPrevented ||
   inDialog(event.target) ||
-  (isTyping(event.target) && !chord.startsWith("mod+"));
+  presses(event.target, chord) ||
+  types(event.target, chord);
 
 const starts = (keymap: Keymap, chord: string) =>
   Object.keys(keymap).some((keys) => keys.startsWith(`${chord} `));
@@ -59,7 +70,8 @@ export type KeyReader = (event: KeyboardEvent) => boolean;
 
 /**
  * Makes a {@link KeyReader} over `keymap`, read on every press so bindings can depend on state.
- * A press runs its binding unless something already handled it, it happened in a dialog, or it
+ * A press runs its binding unless something already handled it, it happened in a dialog, it is
+ * Enter or Space on a control that those keys press (a button, a link, a resize handle), or it
  * is typing (only `mod+` chords run in text inputs). After the first chord of a sequence, the
  * next press runs the sequence if there is one, else its own binding. Returns whether a binding
  * ran or a sequence started.
