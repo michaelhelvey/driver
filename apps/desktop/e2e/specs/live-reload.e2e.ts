@@ -20,6 +20,17 @@ const markDone = async (path: string) => {
   await rename(temp, path);
 };
 
+const reloadedTheme = async () => {
+  await browser.execute(() => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  });
+  await browser.keys("t");
+  const before = await $("html").getAttribute("data-theme");
+  await browser.refresh();
+  await expect($("[data-testid=headline-percent]")).toBeExisting();
+  return { before, after: await $("html").getAttribute("data-theme") };
+};
+
 describe("driver desktop", () => {
   it("reads the projects under DRIVER_ROOT", async () => {
     await expect($("aside")).toHaveText(expect.stringContaining(await root()));
@@ -128,5 +139,13 @@ describe("driver desktop", () => {
     await expect($("[aria-label=Reader]")).not.toBeExisting();
     await $(`main [data-kind="attention"]`).click();
     await expect($("[aria-label=Reader]")).toBeExisting();
+  });
+
+  it("keeps the t theme across a reload", async () => {
+    const first = await reloadedTheme();
+    const second = await reloadedTheme();
+    await browser.keys("t");
+    expect([first.after, second.after]).toEqual([first.before, second.before]);
+    expect(second.before).not.toBe(first.before);
   });
 });
