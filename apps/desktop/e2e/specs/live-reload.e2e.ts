@@ -1,6 +1,12 @@
-import { readFile, realpath, rename, writeFile } from "node:fs/promises";
+import { readFile, realpath } from "node:fs/promises";
 import { join } from "node:path";
-import { $, browser, expect } from "@wdio/globals";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import {
+  getDefaultEnvironment,
+  StdioClientTransport,
+} from "@modelcontextprotocol/sdk/client/stdio.js";
+import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types.js";
+import { $, $$, browser, expect } from "@wdio/globals";
 
 declare global {
   interface Window {
@@ -8,17 +14,36 @@ declare global {
   }
 }
 
-const SKILLS = join("pdk-2-sentry", "01-framework", "02-t4-agent-skills.md");
+const MCP = join(import.meta.dirname, "..", "..", "..", "..", "packages", "mcp", "src", "main.ts");
 
 const root = async () => realpath(process.env["DRIVER_ROOT"] ?? "DRIVER_ROOT is not set");
 
-const markDone = async (path: string) => {
-  const text = await readFile(path, "utf8");
-  const done = text.replace(/^status: .*$/m, "status: done").replace(/^ask: .*\n/m, "");
-  const temp = join(path, "..", ".tmp-0-e2e.md");
-  await writeFile(temp, done);
-  await rename(temp, path);
+const mcp = new Client({ name: "driver-desktop-e2e", version: "0" });
+
+const apply = async (args: Record<string, unknown>) => {
+  const result = CallToolResultSchema.parse(await mcp.callTool({ name: "apply", arguments: args }));
+  if (result.isError === true) throw new Error(`apply failed: ${JSON.stringify(result.content)}`);
 };
+
+const cursorRow = () => $(`main [role=listbox] [data-cursor]`);
+
+const focusedRow = async () =>
+  browser.execute(
+    () => document.activeElement?.closest<HTMLElement>("[data-row]")?.dataset.row ?? null,
+  );
+
+before(async () => {
+  await mcp.connect(
+    new StdioClientTransport({
+      command: "bun",
+      args: [MCP],
+      env: { ...getDefaultEnvironment(), DRIVER_ROOT: await root() },
+      stderr: "inherit",
+    }),
+  );
+});
+
+after(async () => mcp.close());
 
 const reloadedTheme = async () => {
   await browser.execute(() => {
@@ -26,8 +51,17 @@ const reloadedTheme = async () => {
   });
   await browser.keys("t");
   const before = await $("html").getAttribute("data-theme");
+  await browser.execute(() => {
+    document.documentElement.dataset.stale = "";
+  });
   await browser.refresh();
-  await expect($("[data-testid=headline-percent]")).toBeExisting();
+  await browser.waitUntil(async () =>
+    browser.execute(
+      () =>
+        document.documentElement.dataset.stale === undefined &&
+        document.querySelector("[data-testid=headline-percent]") !== null,
+    ),
+  );
   return { before, after: await $("html").getAttribute("data-theme") };
 };
 
@@ -74,10 +108,15 @@ describe("driver desktop", () => {
     expect(result).toEqual({ injected: "blocked", applied: "7px" });
   });
 
-  it("shows pdk-2-sentry at 33%", async () => {
+  it("1. shows pdk-2-sentry at 33%, with two rows that need you and one blocked", async () => {
     await browser.keys("2");
     await expect($("h1")).toHaveText("pdk-2-sentry");
     await expect($("[data-testid=headline-percent]")).toHaveText("33%");
+    await expect($("main")).toHaveText(expect.stringContaining("9 of 27 tasks done · 1 skipped"));
+    const glyphs = await $$(`main [data-kind="attention"] > span:nth-child(2)`).map((glyph) =>
+      glyph.getText(),
+    );
+    expect(glyphs).toEqual(["◆", "◆", "✕"]);
   });
 
   it("renders under the CSP: the stylesheet, the font by name, and the grain", async () => {
@@ -94,31 +133,12 @@ describe("driver desktop", () => {
     expect(page.grain).toBe(`url("data:image/svg+xml;utf8`);
   });
 
-  it("follows an edit made on disk within a second, without a reload", async () => {
-    const before = await $("html").getAttribute("data-theme");
-    const flipped = before === "cocoa" ? "paper" : "cocoa";
-    await browser.keys("t");
-    await expect($("html")).toHaveAttribute("data-theme", flipped);
-
-    const percent = await $("[data-testid=headline-percent]").getElement();
-    await markDone(join(await root(), SKILLS));
-    const written = Date.now();
-    await browser.waitUntil(async () => (await percent.getText()) === "37%", {
-      timeout: 1000,
-      interval: 25,
-      timeoutMsg: "headline did not reach 37% within 1s",
-    });
-    const elapsed = Date.now() - written;
-    console.log(`headline reached 37% ${elapsed}ms after the write`);
-    expect(elapsed).toBeLessThan(1000);
-
-    await expect($("html")).toHaveAttribute("data-theme", flipped);
-    await expect($("main")).toHaveText(expect.stringContaining("10 of 27 tasks done"));
-  });
-
-  it("opens the cursor row in the reader, rendered and raw", async () => {
+  it("2. j then ↵ opens t4-authorization-platform in the reader, and r its raw file", async () => {
     const path = join("pdk-2-sentry", "02-canaries", "02-t4-authorization-platform.md");
-    await $(`main [data-kind="attention"]`).click();
+    await expect(cursorRow()).toHaveAttribute("data-row", "attention:t4-agent-skills");
+    await browser.keys("j");
+    await expect(cursorRow()).toHaveAttribute("data-row", "attention:t4-authorization-platform");
+    await browser.keys("Enter");
     await expect($("[data-testid=reader-path]")).toHaveText(expect.stringContaining(path));
     await expect($("[aria-label=Reader] h2")).toHaveText("t4-authorization-platform");
     await browser.keys("r");
@@ -131,7 +151,66 @@ describe("driver desktop", () => {
     );
   });
 
+  it("3. an MCP apply marking t4-agent-skills done shows within 1s, without a reload", async () => {
+    const before = await $("html").getAttribute("data-theme");
+    const flipped = before === "cocoa" ? "paper" : "cocoa";
+    await browser.keys("t");
+    await expect($("html")).toHaveAttribute("data-theme", flipped);
+
+    const percent = await $("[data-testid=headline-percent]").getElement();
+    await apply({
+      slug: "pdk-2-sentry",
+      log: "t4-agent-skills #31 merged.",
+      ops: [{ op: "task", id: "t4-agent-skills", status: { kind: "done" } }],
+    });
+    const written = Date.now();
+    await browser.waitUntil(async () => (await percent.getText()) === "37%", {
+      timeout: 1000,
+      interval: 25,
+      timeoutMsg: "headline did not reach 37% within 1s of the apply",
+    });
+    const elapsed = Date.now() - written;
+    console.log(`headline reached 37% ${elapsed}ms after the MCP apply returned`);
+    expect(elapsed).toBeLessThan(1000);
+
+    await expect($(`main [data-row="task:t4-agent-skills"] .text-sage`)).toHaveText("●");
+    await expect($("html")).toHaveAttribute("data-theme", flipped);
+    await expect($("main")).toHaveText(expect.stringContaining("10 of 27 tasks done"));
+  });
+
+  it("keeps focus on the cursor row when an MCP apply moves it", async () => {
+    await browser.keys(["Meta", "k"]);
+    await expect($(`[role=dialog] [data-slot="command-input"]`)).toBeFocused();
+    await browser.keys("t4-coa".split(""));
+    await browser.keys("Enter");
+    await expect(cursorRow()).toHaveAttribute("data-row", "task:t4-coa");
+    await browser.keys("Escape");
+    await expect($("[aria-label=Reader]")).not.toBeExisting();
+    await browser.waitUntil(async () => (await focusedRow()) === "task:t4-coa");
+
+    await apply({
+      slug: "pdk-2-sentry",
+      log: "t4-coa waits for the dashboard now.",
+      ops: [{ op: "task", id: "t4-coa", after: "t4-developer-dashboard" }],
+    });
+    await browser.waitUntil(
+      async () =>
+        (await $$(`main [data-kind="task"]`).map((row) => row.getAttribute("data-row")))
+          .join(" ")
+          .includes("task:t4-developer-dashboard task:t4-coa"),
+      { timeout: 1000, timeoutMsg: "t4-coa did not move below t4-developer-dashboard" },
+    );
+    await browser.waitUntil(async () => (await focusedRow()) === "task:t4-coa", {
+      timeout: 1000,
+      timeoutMsg: "focus left t4-coa when it moved",
+    });
+    await browser.keys("j");
+    await expect(cursorRow()).toHaveAttribute("data-row", "task:t4-user-interactions-api");
+  });
+
   it("closes the reader when its handle collapses it, so the next activate opens it", async () => {
+    await browser.keys("Enter");
+    await expect($("[aria-label=Reader]")).toBeExisting();
     await browser.execute(() =>
       document.querySelector<HTMLElement>(`[aria-label="Resize reader"]`)?.focus(),
     );
