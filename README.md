@@ -15,9 +15,7 @@ flowchart LR
   app -- reads --> you
 ```
 
-The full design (file format, write protocol, milestones) is [`docs/plan.md`](docs/plan.md). The
-visual reference is [`mockups/driver.html`](mockups/driver.html): open it in a browser and press
-`?`.
+The full design (file format, write protocol, milestones) is [`docs/plan.md`](docs/plan.md).
 
 ## Quickstart
 
@@ -157,8 +155,7 @@ Track this work as a driver project through the `driver` MCP server. The user wa
 driver app and never edits the files; you are the only writer.
 
 - Once, at the start: `create_project` with `slug`, `title`, `repo` (this repo's path), and a
-  `summary` of what the project is and where it stands. Pass `rex` only if `$REX_SESSION` is set;
-  never guess it. Then add phases and tasks with `apply`.
+  `summary` of what the project is and where it stands. Then add phases and tasks with `apply`.
 - Call `get_project` before every `apply`, so your changes are based on the current state.
 - One `apply` per meaningful event (a PR opened or merged, a deploy, a verification, a question for
   the user), with every change in that one call. `log` is one or two sentences saying what happened
@@ -237,39 +234,48 @@ its frontmatter as a table. `r` shows the raw file, exactly as on disk.
 
 ### Keys
 
-The full keymap is the mockup's `?` sheet. It lands with milestone 5 (keyboard); until then, only
-the keys marked "yes" work on `main`.
+Press `?` in the app for this sheet. It is the `KEYS` table in
+[`apps/desktop/src/keys.ts`](apps/desktop/src/keys.ts), which also binds the keys, so the two cannot
+drift.
 
-| keys              | does                              | works today |
-| ----------------- | --------------------------------- | ----------- |
-| `j` `k` / `↓` `↑` | down / up                         | yes         |
-| `Home` `End`      | first / last row                  | yes         |
-| `g g` `G`         | top / bottom                      | M5          |
-| `^d` `^u`         | half page                         | M5          |
-| `a`               | first thing that needs you        | M5          |
-| `g n`             | next that needs you, any project  | M5          |
-| `space`           | fold / unfold phase               | yes         |
-| `b`               | jump to blocker                   | M5          |
-| `J` `K`           | next / prev project               | yes         |
-| `1` … `9`         | project by number                 | yes         |
-| `⌘K`              | palette: everything               | M5          |
-| `p`               | open `project.md`                 | M5          |
-| `L`               | open `log.md`                     | M5          |
-| `↵`               | toggle reader                     | yes         |
-| `tab` `l`         | focus reader                      | M5          |
-| `esc`             | close the reader                  | yes         |
-| `h`               | back to list                      | M5          |
-| `r`               | raw file / rendered               | yes         |
-| `y`               | copy file path                    | M5          |
-| `c`               | talk to the coordinator (via Rex) | M6          |
-| `o`               | `nvim -R` beside the coordinator  | M6          |
-| `/`               | filter tasks                      | M5          |
-| `[`               | toggle sidebar                    | M5          |
-| `t`               | paper / cocoa theme               | yes         |
-| `?`               | keys help                         | M5          |
+| group    | keys              | does                             |
+| -------- | ----------------- | -------------------------------- |
+| move     | `j` `k` / `↓` `↑` | down / up                        |
+|          | `g g` `G`         | top / bottom                     |
+|          | `^d` `^u`         | half page                        |
+|          | `a`               | first thing that needs you       |
+|          | `g n`             | next that needs you, any project |
+|          | `space`           | fold / unfold phase              |
+|          | `b`               | jump to blocker                  |
+| projects | `J` `K`           | next / prev project              |
+|          | `1` … `9`         | project by number                |
+|          | `⌘K`              | palette: everything              |
+|          | `p`               | open `project.md`                |
+|          | `L`               | open `log.md`                    |
+| read     | `↵`               | toggle reader                    |
+|          | `tab` `l`         | focus reader                     |
+|          | `h` `esc`         | back to list                     |
+|          | `r`               | raw file / rendered              |
+|          | `y`               | copy file path                   |
+|          | `c`               | copy a reference for an agent    |
+| view     | `/`               | filter tasks                     |
+|          | `[`               | toggle sidebar                   |
+|          | `t`               | paper / cocoa theme              |
+|          | `?`               | this                             |
 
-`c` and `o` need the project's `rex` field (the coordinator's `$REX_SESSION`) and do nothing without
-it.
+While the reader has focus, `j` `k` `^d` `^u` `g g` `G` scroll it, and `h`, `esc` and `tab` go back
+to the list. In the list, `esc` closes the reader, else clears the filter, and `Home` `End` go to
+the first / last row.
+
+`c` copies a line to paste into your coordinator, so you can talk about the row under the cursor
+without typing its path:
+
+```
+re t4-coa (t4-coa): /Users/you/.driver/pdk-2-sentry/03a-framework-apps/01-t4-coa.md
+```
+
+A task names its id and title, a phase header its id and title, the project header the project's
+slug and title, and the recent-log row `log`. The path is the one `y` copies.
 
 ## File format
 
@@ -278,7 +284,7 @@ Everything is plain markdown with YAML frontmatter. You can `cat`, `grep`, and `
 ```
 ~/.driver/
   <project-slug>/
-    project.md            # title, repo, rex?, started, updated; summary; then ## sections
+    project.md            # title, repo, started, updated; summary; then ## sections
     log.md                # append-only, oldest first: "## <ISO timestamp>" + text
     <NN>-<phase-slug>/    # 00-pdk-2.0, 03a-framework-apps
       phase.md            # title; first line of the body is the phase note
@@ -296,30 +302,32 @@ spec is in [`docs/plan.md`](docs/plan.md#file-layout). Real examples are in
 
 ## Development
 
-| what                             | command                                                                    |
-| -------------------------------- | -------------------------------------------------------------------------- |
-| lint, format, types, all tests   | `bun run validate`                                                         |
-| unit tests only                  | `bun run test`                                                             |
-| format                           | `bun run format`                                                           |
-| browser build on the fixtures    | `bun --cwd apps/desktop dev`, then open `http://localhost:1420/`           |
-| the app on `~/.driver`           | `bun --cwd apps/desktop tauri dev`                                         |
-| the app on the fixtures          | `DRIVER_ROOT=$PWD/packages/core/fixtures bun --cwd apps/desktop tauri dev` |
-| real-window e2e (builds Rust)    | `bun run e2e:desktop`                                                      |
-| visual parity against the mockup | `bun --cwd apps/desktop scripts/parity.ts`                                 |
-| run the MCP server by hand       | `bun packages/mcp/src/main.ts`                                             |
+| what                                        | command                                                                    |
+| ------------------------------------------- | -------------------------------------------------------------------------- |
+| lint, format, types, all tests, browser e2e | `bun run validate`                                                         |
+| unit tests only                             | `bun run test`                                                             |
+| browser e2e: every key, no mouse            | `bun run e2e:web`                                                          |
+| format                                      | `bun run format`                                                           |
+| browser build on the fixtures               | `bun --cwd apps/desktop dev`, then open `http://localhost:1420/`           |
+| the app on `~/.driver`                      | `bun --cwd apps/desktop tauri dev`                                         |
+| the app on the fixtures                     | `DRIVER_ROOT=$PWD/packages/core/fixtures bun --cwd apps/desktop tauri dev` |
+| real-window e2e (builds Rust)               | `bun run e2e:desktop`                                                      |
+| run the MCP server by hand                  | `bun packages/mcp/src/main.ts`                                             |
 
 - `packages/core`: schemas, `parseProject`, `planApply`, and the tool descriptions. Pure TS; the
   only module that knows the file format.
 - `packages/mcp`: the stdio MCP server, the only writer. See
   [`packages/mcp/README.md`](packages/mcp/README.md).
 - `apps/desktop`: the Tauri v2 + Solid 2 app. See [`apps/desktop/README.md`](apps/desktop/README.md)
-  for its layout, scripts, and parity residuals.
+  for its layout and scripts.
 - `packages/core/fixtures/`: four sample projects (`pdk-2-sentry`, `driver`, `billing-ledger-v2`,
   `onboarding-docs`) in `apply`'s canonical form. Tests, the browser build, and the e2e run use
   them. To try the real app on them without touching `~/.driver`, use the `DRIVER_ROOT` line above.
 
-`bun run validate` must be green before work is done. `bun run e2e:desktop` is not part of it,
-because it builds the Rust side.
+`bun run validate` must be green before work is done. It ends with `bun run e2e:web`, which drives
+the browser build in the installed Google Chrome (Playwright's `channel: "chrome"`), so Chrome must
+be installed. `bun run e2e:desktop` is not part of it, because it builds the Rust side; it also
+writes to the real system clipboard (the `y` and `c` checks), so expect your clipboard to change.
 
 ## Troubleshooting
 
