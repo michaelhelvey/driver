@@ -23,4 +23,7 @@ export const config: WebdriverIO.Config = {
   mochaOpts: { ui: "bdd", timeout: 60_000 },
   logLevel: "warn",
   waitforTimeout: 10_000,
+  before: async (_capabilities, _specs, browser) => {
+    await browser.switchToWindow(await browser.getWindowHandle());
+  },
 };

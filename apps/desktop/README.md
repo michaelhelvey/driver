@@ -38,7 +38,8 @@ shows an error in the window.
 
 ## e2e notes
 
-`@wdio/tauri-service` checks window focus before each `$`/`findElement` by calling a
-`tauri-plugin-wdio` command we do not install, so each lookup waits 5s and logs a
-`Failed to get window states` warning. Specs resolve an element once (`getElement()`) before polling
-it, so timing assertions measure the app, not that wait.
+`@wdio/tauri-service` checks window focus before each `$`/`findElement` through the
+`tauri-plugin-wdio` plugin, which we do not install: each check waits 5s for it and logs
+`Failed to get window states`. The service skips the check once a session has switched windows
+itself, so `wdio.conf.ts` switches to the window it is already on in `before`. Specs still resolve
+an element once (`getElement()`) before polling it, so timing assertions measure only the app.
