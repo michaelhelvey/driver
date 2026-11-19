@@ -54,7 +54,7 @@ const move = (
  * @example
  * const { Root: CursorList, Row: CursorListRow } = createParts(cursorList, { root: "div", row: "div" });
  * <CursorList aria-label="Tasks" onActivate={(id) => open(id)}>
- *   <CursorListRow value="t4-coa">t4-coa</CursorListRow>
+ *   <CursorListRow value="plugin-sitemap">plugin-sitemap</CursorListRow>
  * </CursorList>
  */
 export const cursorList = definePrimitive({

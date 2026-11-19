@@ -18,7 +18,7 @@ const taskView = (task: Task) => ({
  * The `list_projects` output for a set of parsed projects, keyed by slug.
  *
  * @example
- * renderListProjects(new Map([["pdk-2-sentry", project]])).projects[0]?.percent; // 33
+ * renderListProjects(new Map([["pinion-2-plugins", project]])).projects[0]?.percent; // 33
  */
 export function renderListProjects(projects: ReadonlyMap<string, Project>): ListProjectsOutput {
   return {
@@ -38,7 +38,7 @@ export function renderListProjects(projects: ReadonlyMap<string, Project>): List
  * first.
  *
  * @example
- * renderProject("pdk-2-sentry", project).phases[4]?.tasks[0]?.label; // "03a.1"
+ * renderProject("pinion-2-plugins", project).phases[4]?.tasks[0]?.label; // "03a.1"
  */
 export function renderProject(slug: string, project: Project): GetProjectOutput {
   const { title, repo, started } = project.meta;
@@ -66,8 +66,8 @@ export function renderProject(slug: string, project: Project): GetProjectOutput 
  * The `needs_me` output: every `needs-you` and `blocked` task across projects, keyed by slug.
  *
  * @example
- * renderNeedsMe(new Map([["pdk-2-sentry", project]])).tasks.map((t) => t.id);
- * // ["t4-agent-skills", "t4-authorization-platform", "t4-user-info"]
+ * renderNeedsMe(new Map([["pinion-2-plugins", project]])).tasks.map((t) => t.id);
+ * // ["pinion-docs", "plugin-images", "plugin-embeds"]
  */
 export function renderNeedsMe(projects: ReadonlyMap<string, Project>): NeedsMeOutput {
   return {

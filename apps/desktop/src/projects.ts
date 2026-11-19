@@ -15,7 +15,7 @@ export type Entry =
  * error entry instead of throwing.
  *
  * @example
- * toEntry("pdk-2-sentry", files).kind; // "ok"
+ * toEntry("pinion-2-plugins", files).kind; // "ok"
  * toEntry("broken", new Map()); // { kind: "error", slug: "broken", message: "missing project.md" }
  */
 export function toEntry(slug: string, files: ProjectFiles): Entry {

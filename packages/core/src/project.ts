@@ -95,8 +95,8 @@ const HIDDEN = /(^|\/)\./;
  * `.DS_Store`). Paths use `/`.
  *
  * @example
- * isHidden("pdk-2-sentry/.tmp-0-log.md"); // true
- * isHidden("pdk-2-sentry/log.md"); // false
+ * isHidden("pinion-2-plugins/.tmp-0-log.md"); // true
+ * isHidden("pinion-2-plugins/log.md"); // false
  */
 export function isHidden(path: string): boolean {
   return HIDDEN.test(path);
@@ -255,7 +255,7 @@ export function derive(data: ProjectData): Project {
  * `phase.md`), and task ids.
  *
  * @example
- * refPaths(project).get("t4-coa"); // "03a-framework-apps/01-t4-coa.md"
+ * refPaths(project).get("plugin-sitemap"); // "03a-framework-apps/01-plugin-sitemap.md"
  */
 export function refPaths(project: Project): Map<string, string> {
   return new Map([

@@ -62,9 +62,9 @@ shows an error in the window.
 ## Scripts
 
 - `scripts/screenshot.ts <url> <out.png> [keys] [WIDTHxHEIGHT]`: screenshots the browser build in
-  Chrome after pressing `keys` (comma separated, like `2,t` for pdk-2-sentry in the cocoa theme), at
-  a viewport of `WIDTHxHEIGHT` (default `1280x820`; the root README's images use `1440x900`). Run
-  the browser dev server first.
+  Chrome after pressing `keys` (comma separated, like `2,t` for pinion-2-plugins in the cocoa
+  theme), at a viewport of `WIDTHxHEIGHT` (default `1280x820`; the root README's images use
+  `1440x900`). Run the browser dev server first.
 - `scripts/readme-preview.ts [out-dir]`: renders the root README offline the way GitHub does, fails
   on broken relative links and anchors, and screenshots it in light and dark. See the verify-driver
   skill.

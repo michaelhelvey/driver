@@ -11,7 +11,7 @@ export type Clipboard = {
  * The browser's clipboard, for browser dev and the browser e2e tests.
  *
  * @example
- * await browserClipboard().writeText("/Users/me/.driver/pdk-2-sentry/log.md");
+ * await browserClipboard().writeText("/Users/me/.driver/pinion-2-plugins/log.md");
  */
 export function browserClipboard(): Clipboard {
   return { writeText: async (text) => navigator.clipboard.writeText(text) };

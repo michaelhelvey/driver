@@ -43,7 +43,7 @@ export type View = {
  *
  * @example
  * const view = createView(() => cursor()?.key);
- * view.activate("pdk-2-sentry", "attention:t4-coa"); // the reader opens on t4-coa
+ * view.activate("pinion-2-plugins", "attention:plugin-sitemap"); // the reader opens on plugin-sitemap
  * view.toggleRaw(); // the reader shows the file as it is on disk
  */
 export function createView(cursorKey: () => string | undefined): View {

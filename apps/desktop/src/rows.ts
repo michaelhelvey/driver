@@ -38,7 +38,7 @@ const phaseRows = (phase: Phase): Row[] => [
  *
  * @example
  * rowsOf(project).map((row) => row.key);
- * // ["project", "attention:t4-agent-skills", …, "log", "phase:pdk-2.0", "task:plan-doc", …]
+ * // ["project", "attention:pinion-docs", …, "log", "phase:pinion-2.0", "task:plan-doc", …]
  */
 export function rowsOf(project: Project): Row[] {
   return [
@@ -56,8 +56,8 @@ export function rowsOf(project: Project): Row[] {
  * slug, and the log row `log` in the project. `path` is the row's file on disk, as `y` copies it.
  *
  * @example
- * referenceOf(row, "pdk-2-sentry", project, "/Users/me/.driver/pdk-2-sentry/03a-framework-apps/01-t4-coa.md");
- * // "re t4-coa (t4-coa): /Users/me/.driver/pdk-2-sentry/03a-framework-apps/01-t4-coa.md"
+ * referenceOf(row, "pinion-2-plugins", project, "/Users/me/.driver/pinion-2-plugins/03a-framework-apps/01-plugin-sitemap.md");
+ * // "re plugin-sitemap (plugin-sitemap): /Users/me/.driver/pinion-2-plugins/03a-framework-apps/01-plugin-sitemap.md"
  */
 export function referenceOf(row: Row, slug: string, project: Project, path: string): string {
   const { id, title } =
@@ -87,7 +87,7 @@ const searchText = (task: Task): string =>
  * blocked on contains the query, ignoring case. Every task matches the empty query.
  *
  * @example
- * matches(task, "sentry"); // true when "sentry" is in the task's title or notes
+ * matches(task, "sitemap"); // true when "sitemap" is in the task's title or notes
  */
 export function matches(task: Task, query: string): boolean {
   return searchText(task).includes(query.toLowerCase());
@@ -106,7 +106,7 @@ const keeps = (row: Row, query: string, phases: ReadonlySet<string>): boolean =>
  *
  * @example
  * filterRows(rowsOf(project), "coa").map((row) => row.key);
- * // ["project", "phase:framework-apps", "task:t4-coa"]
+ * // ["project", "phase:framework-apps", "task:plugin-sitemap"]
  */
 export function filterRows(rows: readonly Row[], query: string): Row[] {
   if (query === "") return [...rows];
@@ -122,7 +122,7 @@ export function filterRows(rows: readonly Row[], query: string): Row[] {
  * Whether every task of a phase is `done` or `skipped`. Such a phase starts folded.
  *
  * @example
- * isFinished(project.phases[0]); // true for pdk-2-sentry's "00 pdk 2.0"
+ * isFinished(project.phases[0]); // true for pinion-2-plugins's "00 pinion 2.0"
  */
 export function isFinished(phase: Phase): boolean {
   return phase.tasks.every((task) => task.status.kind === "done" || task.status.kind === "skipped");
@@ -132,7 +132,7 @@ export function isFinished(phase: Phase): boolean {
  * The id of the phase a row folds: a phase header's own, or a task's phase.
  *
  * @example
- * phaseIdOf(rows.find((row) => row.key === "task:t4-coa")); // "framework-apps"
+ * phaseIdOf(rows.find((row) => row.key === "task:plugin-sitemap")); // "framework-apps"
  */
 export function phaseIdOf(row: Row): string | undefined {
   if (row.kind === "phase") return row.phase.id;
@@ -148,7 +148,7 @@ const hidden = (row: Row, folded: Folded) => row.kind === "task" && folded(row.t
  * The rows the cursor can be on: every row but the tasks of folded phases.
  *
  * @example
- * visibleRows(rowsOf(project), (id) => id === "pdk-2.0").some((row) => row.key === "task:plan-doc"); // false
+ * visibleRows(rowsOf(project), (id) => id === "pinion-2.0").some((row) => row.key === "task:plan-doc"); // false
  */
 export function visibleRows(rows: readonly Row[], folded: Folded): Row[] {
   return rows.filter((row) => !hidden(row, folded));
@@ -165,8 +165,8 @@ const fallback = (rows: readonly Row[]): Row | undefined =>
  * (or the first row), and a task in a folded phase to its phase header.
  *
  * @example
- * cursorRow(rows, null, () => false)?.key; // "attention:t4-agent-skills"
- * cursorRow(rows, "task:plan-doc", (id) => id === "pdk-2.0")?.key; // "phase:pdk-2.0"
+ * cursorRow(rows, null, () => false)?.key; // "attention:pinion-docs"
+ * cursorRow(rows, "task:plan-doc", (id) => id === "pinion-2.0")?.key; // "phase:pinion-2.0"
  */
 export function cursorRow(
   rows: readonly Row[],

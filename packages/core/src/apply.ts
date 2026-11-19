@@ -289,8 +289,8 @@ const guard = (run: () => Plan): Plan | ApplyError => {
  *
  * @example
  * const result = planApply(project, {
- *   log: "t4-agent-skills merged as #31.",
- *   ops: [{ op: "task", id: "t4-agent-skills", status: { kind: "done" } }],
+ *   log: "pinion-docs merged as #17.",
+ *   ops: [{ op: "task", id: "pinion-docs", status: { kind: "done" } }],
  * }, new Date());
  * if (result.kind === "plan") result.project.progress.percent; // 37
  */

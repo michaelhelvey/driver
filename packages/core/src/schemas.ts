@@ -14,7 +14,7 @@ export const ID_PATTERN = "[a-z0-9][a-z0-9._-]*";
  * A project slug, phase id, or task id: the file or folder name without its `NN-` prefix.
  *
  * @example
- * IdSchema.parse("t4-coa"); // "t4-coa"
+ * IdSchema.parse("plugin-sitemap"); // "plugin-sitemap"
  * IdSchema.safeParse("log").success; // false: "project" and "log" are read refs
  */
 export const IdSchema = z
@@ -86,7 +86,7 @@ export const BodySchema = z
  * `blocked_on` / `blocked_by` / `why`).
  *
  * @example
- * StatusSchema.parse({ kind: "blocked", on: "CT-597 merge", by: "t4-coa" });
+ * StatusSchema.parse({ kind: "blocked", on: "async-render merge", by: "plugin-sitemap" });
  */
 export const StatusSchema = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("todo") }),
@@ -141,7 +141,7 @@ export const LogFrontmatterSchema = z.strictObject({ title: z.literal("log") });
  * checked when the flat fields are read into a {@link Status}.
  *
  * @example
- * TaskFrontmatterSchema.parse({ title: "t4-coa", status: "todo", updated: "2026-11-17T20:54:00Z" });
+ * TaskFrontmatterSchema.parse({ title: "plugin-sitemap", status: "todo", updated: "2026-11-17T20:54:00Z" });
  */
 export const TaskFrontmatterSchema = z.strictObject({
   title: LineSchema,
@@ -162,7 +162,7 @@ export type TaskFrontmatter = z.infer<typeof TaskFrontmatterSchema>;
  * One `log.md` entry: a `## <timestamp>` heading and its text.
  *
  * @example
- * LogEntrySchema.parse({ at: "2026-11-19T07:38:00Z", text: "t4-transit-times is on alpha." });
+ * LogEntrySchema.parse({ at: "2026-11-19T07:38:00Z", text: "plugin-feed is on the example site." });
  */
 export const LogEntrySchema = z.object({ at: TimestampSchema, text: z.string() });
 
@@ -205,7 +205,7 @@ export const PhaseOpSchema = z
  * The `task` op of `apply`.
  *
  * @example
- * TaskOpSchema.parse({ op: "task", id: "t4-coa", status: { kind: "done" } });
+ * TaskOpSchema.parse({ op: "task", id: "plugin-sitemap", status: { kind: "done" } });
  */
 export const TaskOpSchema = z
   .strictObject({
@@ -227,7 +227,7 @@ export const TaskOpSchema = z
  * One `apply` op.
  *
  * @example
- * OpSchema.parse({ op: "task", id: "t4-coa", status: { kind: "doing" } });
+ * OpSchema.parse({ op: "task", id: "plugin-sitemap", status: { kind: "doing" } });
  */
 export const OpSchema = z.discriminatedUnion("op", [ProjectOpSchema, PhaseOpSchema, TaskOpSchema]);
 
@@ -238,7 +238,7 @@ export type Op = z.infer<typeof OpSchema>;
  * The body of an `apply` call: a log line and the ops.
  *
  * @example
- * ApplyInputSchema.parse({ log: "t4-coa merged as #52.", ops: [{ op: "task", id: "t4-coa", status: { kind: "done" } }] });
+ * ApplyInputSchema.parse({ log: "plugin-sitemap merged as #64.", ops: [{ op: "task", id: "plugin-sitemap", status: { kind: "done" } }] });
  */
 export const ApplyInputSchema = z.strictObject({
   log: TextSchema.describe(

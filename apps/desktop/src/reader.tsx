@@ -148,7 +148,7 @@ function Rendered(props: ReaderProps) {
  * The reader pane: the cursor row's file, rendered, or raw exactly as on disk.
  *
  * @example
- * <Reader slug="pdk-2-sentry" root={root} project={project} row={row} text={text} raw={false} now={now()} />
+ * <Reader slug="pinion-2-plugins" root={root} project={project} row={row} text={text} raw={false} now={now()} />
  */
 export function Reader(props: ReaderProps) {
   const dir = () => props.row.path.split("/").slice(0, -1).join("/");

@@ -11,7 +11,7 @@ const RETRY_MS = 25;
  *
  * @example
  * const disk = createDisk("/Users/me/.driver", { lockTimeoutMs: 10_000 });
- * await disk.locked("pdk-2-sentry", () => disk.execute("pdk-2-sentry", plan.steps));
+ * await disk.locked("pinion-2-plugins", () => disk.execute("pinion-2-plugins", plan.steps));
  */
 export type Disk = {
   /** Slugs of every directory under the root that has a `project.md`, sorted. */
@@ -95,7 +95,7 @@ const takeLock = async (path: string): Promise<boolean> => {
  *
  * @example
  * const disk = createDisk(join(homedir(), ".driver"), { lockTimeoutMs: 10_000 });
- * await disk.projects(); // ["driver", "pdk-2-sentry"]
+ * await disk.projects(); // ["driver", "pinion-2-plugins"]
  */
 export function createDisk(root: string, options: { lockTimeoutMs: number }): Disk {
   const dirOf = (slug: string): string => join(root, slug);

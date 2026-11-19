@@ -31,14 +31,15 @@ in [`apps/desktop/src/keys.ts`](../apps/desktop/src/keys.ts). Run it and press `
   <project-slug>/
     project.md                 # summary + decisions, written by the coordinator
     log.md                     # append-only log of what happened
-    <NN>-<phase-slug>/         # e.g. 00-pdk-2.0, 03a-framework-apps
+    <NN>-<phase-slug>/         # e.g. 00-pinion-2.0, 03a-framework-apps
       phase.md                 # what the phase is, phase-wide verification
-      <NN>-<task-slug>.md      # e.g. 01-t4-coa.md
+      <NN>-<task-slug>.md      # e.g. 01-plugin-sitemap.md
 ```
 
 - **Order** comes from the `NN-` prefix. Phase prefixes can have a letter (`03a`, `03b`).
-- **Ids** are the slug: the file or folder name without the prefix (`t4-coa`, `framework-apps`). Ids
-  are unique within a project. All references (`blocked_by`, tool arguments) use ids.
+- **Ids** are the slug: the file or folder name without the prefix (`plugin-sitemap`,
+  `framework-apps`). Ids are unique within a project. All references (`blocked_by`, tool arguments)
+  use ids.
 - **Position labels** like `03a.1` are made from the prefixes and are display only. They change when
   tasks move, so nothing stores them.
 - `apply` owns the prefixes. It renames files when items are added or moved.
@@ -47,8 +48,8 @@ in [`apps/desktop/src/keys.ts`](../apps/desktop/src/keys.ts). Run it and press `
 
 ```md
 ---
-title: pdk-2-sentry
-repo: ~/dev/t4/t4-platform-lambda
+title: pinion-2-plugins
+repo: ~/dev/pinion/pinion
 started: 2026-11-10
 updated: 2026-11-19T07:38:00Z
 ---
@@ -69,11 +70,11 @@ title: log
 
 ## 2026-11-17T20:51:00Z
 
-Phase 00 complete: #46 merged as 3a24ff6, deploy_beta 44154822350 green.
+Phase 00 complete: #21 merged as 7c1e0b9, CI run 3318 green.
 
 ## 2026-11-19T07:38:00Z
 
-t4-transit-times is on alpha. Waiting for the forced crash to land in Sentry.
+plugin-feed is on the example site. Waiting for the forced error to show up in the overlay.
 ```
 
 Oldest first, so a write is a true append. The UI shows it newest first.
@@ -92,11 +93,11 @@ Free text. The first line is the one-line note under the phase header.
 
 ```md
 ---
-title: t4-authorization-platform
+title: plugin-images
 status: needs-you
-ask: "authorizer cold start +290ms — keep 500ms reserve, or drop to 200ms?"
-repo: t4-authorization-platform
-pr: "#204"
+ask: "image plugin cold build +290ms — keep 500ms reserve, or drop to 200ms?"
+repo: plugin-images
+pr: "#140"
 updated: 2026-11-19T07:02:00Z
 ---
 
@@ -170,9 +171,9 @@ code as the zod schemas' `.describe()` text, so the agent's docs and the validat
 > and either all of it is written or none of it is. If anything is invalid, nothing is written and
 > you get the validation error back.
 >
-> `log` is required: one or two sentences saying what happened and the evidence for it ("t4-coa
-> merged as #52; beta deploy 4415 is green"). It is added to `log.md`. Describe what happened, not
-> what you plan to do.
+> `log` is required: one or two sentences saying what happened and the evidence for it
+> ("auth-service merged as #64; staging deploy 9127 is green"). It is added to `log.md`. Describe
+> what happened, not what you plan to do.
 >
 > Each op creates the item if the id is new, or updates it if it already exists. Fields you leave
 > out stay unchanged. There is no delete: mark work that's no longer needed as `skipped` and give a
@@ -218,7 +219,7 @@ code as the zod schemas' `.describe()` text, so the agent's docs and the validat
 - Writes are all-or-nothing, and follow the on-disk write protocol below.
 - One `apply` at a time per project: take an exclusive lock file (`<project>/.lock`) for the whole
   call. A second caller waits, then fails with a clear error after a timeout.
-- Frontmatter is written with a real YAML library, quoted where needed (`pr: "#204"`).
+- Frontmatter is written with a real YAML library, quoted where needed (`pr: "#140"`).
 - There is no `broken` status. When an agent's own work fails, the task is `needs-you` with the
   error as the `ask`. `doing` would hide the failure.
 
@@ -348,10 +349,10 @@ The keymap is the `KEYS` table in `apps/desktop/src/keys.ts`, which the `?` shee
 Each milestone ends with `bun run validate` green and the listed check passing.
 
 1. **Workspace + core.** Convert the repo to a bun workspace. `packages/core` with schemas,
-   `parseProject`, `planApply`. Fixtures: sample `pdk-2-sentry` and `driver` projects as real files
-   under `packages/core/fixtures/`. _Check:_ table tests (`it.each`) parse the fixtures and assert
-   ids, labels, percent, "now in", step counts; `planApply` cases for create, update, move, reorder,
-   status change, bad `blocked_by`, missing `ask`.
+   `parseProject`, `planApply`. Fixtures: sample `pinion-2-plugins` and `driver` projects as real
+   files under `packages/core/fixtures/`. _Check:_ table tests (`it.each`) parse the fixtures and
+   assert ids, labels, percent, "now in", step counts; `planApply` cases for create, update, move,
+   reorder, status change, bad `blocked_by`, missing `ask`.
 2. **MCP server.** `packages/mcp` with the six tools. _Check:_ an e2e test starts the server over
    stdio with the MCP client SDK against a temp copy of the fixtures, calls every tool, and asserts
    the files on disk and a re-parse. A test runs two `apply` calls at once and asserts both land and
@@ -378,11 +379,11 @@ cp -R packages/core/fixtures/* ~/.driver/          # or point DRIVER_ROOT at the
 bun --cwd apps/desktop tauri dev
 ```
 
-1. The `pdk-2-sentry` page shows `33%`, `9 of 27 tasks done · 1 skipped`, two "needs you" rows, one
-   blocked row.
-2. Press `j` then `↵`: the reader opens on `t4-authorization-platform`. Press `r`: the raw file.
-3. In a terminal, ask a coordinator with the MCP server to mark `t4-agent-skills` done. The row
-   turns sage and the headline goes to `37%` without a reload.
+1. The `pinion-2-plugins` page shows `33%`, `9 of 27 tasks done · 1 skipped`, two "needs you" rows,
+   one blocked row.
+2. Press `j` then `↵`: the reader opens on `plugin-images`. Press `r`: the raw file.
+3. In a terminal, ask a coordinator with the MCP server to mark `pinion-docs` done. The row turns
+   sage and the headline goes to `37%` without a reload.
 
 ## Resolved decisions
 

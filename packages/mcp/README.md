@@ -14,7 +14,7 @@ bun packages/mcp/src/main.ts
 | `DRIVER_LOCK_TIMEOUT_MS` | `10000`     | how long `apply` waits for another `apply`'s `.lock`   |
 
 stdout carries only MCP messages. Each tool call is logged to stderr as one JSON line:
-`{"tool":"apply","project":"pdk-2-sentry","ops":1,"ms":12,"error":null}`.
+`{"tool":"apply","project":"pinion-2-plugins","ops":1,"ms":12,"error":null}`.
 
 If `apply` fails with `<project>/.lock is still there`, a crashed `apply` left the lock behind.
 Delete the file if no other `apply` is running.

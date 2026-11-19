@@ -23,7 +23,7 @@ function Segment(props: { children: JSX.Element }) {
  * time.
  *
  * @example
- * <StatusLine mode="NORMAL" root="~/.driver" path="pdk-2-sentry/log.md" filter="" needsYou={3} blocked={2} at={4} of={30} now={now()} />
+ * <StatusLine mode="NORMAL" root="~/.driver" path="pinion-2-plugins/log.md" filter="" needsYou={3} blocked={2} at={4} of={30} now={now()} />
  */
 export function StatusLine(props: {
   mode: Mode;

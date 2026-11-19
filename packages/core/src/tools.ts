@@ -55,11 +55,11 @@ export const DRIVER_INSTRUCTIONS = [
   [
     "While you work:",
     "- Call `get_project` before every `apply`, so your changes are based on the current state.",
-    '- One `apply` per meaningful event (a PR opened or merged, a deploy, a verification, a question for the user), with every change in that one call. `log` is one or two sentences saying what happened and the evidence for it ("t4-coa merged as #52; beta deploy 4415 is green"), not what you plan to do.',
+    '- One `apply` per meaningful event (a PR opened or merged, a deploy, a verification, a question for the user), with every change in that one call. `log` is one or two sentences saying what happened and the evidence for it ("auth-service merged as #64; staging deploy 9127 is green"), not what you plan to do.',
     '- When you need something from the user, set the task to `{ kind: "needs-you", ask }` with one line saying exactly what you need. If your own work fails (a build breaks, a deploy fails, you are stuck), do the same with the error as the `ask`; never leave a failing task `doing`.',
     "- There is no delete: mark work that's no longer needed `skipped` with a reason.",
     "- `body` replaces the whole body, so `read` the task first and send it back whole.",
-    "- Ids are lowercase slugs (`t4-coa`, `framework-apps`); `project` and `log` are reserved. Never type position labels like `03a.1`: `apply` numbers files for you.",
+    "- Ids are lowercase slugs (`auth-service`, `api-rollout`); `project` and `log` are reserved. Never type position labels like `03a.1`: `apply` numbers files for you.",
     "- When the user asks what's waiting on them, call `needs_me`.",
   ].join("\n"),
 ].join("\n\n");
@@ -80,7 +80,7 @@ export const ListProjectsInputSchema = z
  * Input of `get_project`. Its description is the tool description.
  *
  * @example
- * GetProjectInputSchema.parse({ slug: "pdk-2-sentry" });
+ * GetProjectInputSchema.parse({ slug: "pinion-2-plugins" });
  */
 export const GetProjectInputSchema = z
   .strictObject({ slug: SlugSchema })
@@ -92,7 +92,7 @@ export const GetProjectInputSchema = z
  * Input of `read`. Its description is the tool description.
  *
  * @example
- * ReadInputSchema.parse({ slug: "pdk-2-sentry", refs: ["t4-coa", "log"] });
+ * ReadInputSchema.parse({ slug: "pinion-2-plugins", refs: ["plugin-sitemap", "log"] });
  */
 export const ReadInputSchema = z
   .strictObject({
@@ -128,7 +128,7 @@ export const CreateProjectInputSchema = z
   .strictObject({
     slug: SlugSchema,
     title: LineSchema,
-    repo: LineSchema.describe("The main repository path, e.g. `~/dev/t4/t4-platform-lambda`."),
+    repo: LineSchema.describe("The main repository path, e.g. `~/dev/acme/api`."),
     summary: TextSchema.describe(
       "What this project is and where it stands. Shown at the top of the project page.",
     ),
@@ -145,12 +145,12 @@ export const CreateProjectInputSchema = z
  * Input of `apply`. Its description is the tool description.
  *
  * @example
- * ApplyToolInputSchema.parse({ slug: "pdk-2-sentry", log: "t4-coa merged as #52.", ops: [] });
+ * ApplyToolInputSchema.parse({ slug: "pinion-2-plugins", log: "plugin-sitemap merged as #64.", ops: [] });
  */
 export const ApplyToolInputSchema = ApplyInputSchema.extend({ slug: SlugSchema }).describe(
   [
     "The only way to change a project. Send every change in one call. The batch is checked as a whole and either all of it is written or none of it is. If anything is invalid, nothing is written and you get the validation error back.",
-    '`log` is required: one or two sentences saying what happened and the evidence for it ("t4-coa merged as #52; beta deploy 4415 is green"). It is added to `log.md`. Describe what happened, not what you plan to do.',
+    '`log` is required: one or two sentences saying what happened and the evidence for it ("auth-service merged as #64; staging deploy 9127 is green"). It is added to `log.md`. Describe what happened, not what you plan to do.',
     "Each op creates the item if the id is new, or updates it if it already exists. Fields you leave out stay unchanged. There is no delete: mark work that's no longer needed as `skipped` and give a reason.",
     bullets(OpSchema.options, "op"),
     "Without `after`, a new or moved item goes last, and an existing item stays where it is. `after: null` puts it first.",
@@ -202,7 +202,7 @@ export type ListProjectsOutput = z.infer<typeof ListProjectsOutputSchema>;
  * A task row in `get_project`. `steps` is `done/total` from the body's checkboxes.
  *
  * @example
- * TaskViewSchema.parse({ id: "t4-coa", label: "03a.1", title: "t4-coa", status: { kind: "todo" }, steps: "0/6" });
+ * TaskViewSchema.parse({ id: "plugin-sitemap", label: "03a.1", title: "plugin-sitemap", status: { kind: "todo" }, steps: "0/6" });
  */
 export const TaskViewSchema = z.object({
   id: z.string(),

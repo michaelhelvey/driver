@@ -136,13 +136,13 @@ root=$(mktemp -d) && cp -R packages/core/fixtures/* "$root"
 DRIVER_ROOT=$root bun --cwd apps/desktop tauri dev
 ```
 
-1. Press `2`. The `pdk-2-sentry` page shows `33%`, `9 of 27 tasks done · 1 skipped`, two "needs you"
-   rows and one blocked row.
-2. Press `j` then `↵`: the reader opens on `t4-authorization-platform`. Press `r`: the raw file,
-   exactly as on disk. Press `r` again for the rendered view.
+1. Press `2`. The `pinion-2-plugins` page shows `33%`, `9 of 27 tasks done · 1 skipped`, two "needs
+   you" rows and one blocked row.
+2. Press `j` then `↵`: the reader opens on `plugin-images`. Press `r`: the raw file, exactly as on
+   disk. Press `r` again for the rendered view.
 3. Point a coordinator's `driver` MCP server at the same root (add
    `"environment": { "DRIVER_ROOT": "<root>" }` to its OpenCode entry) and ask it to mark
-   `t4-agent-skills` done. The row turns sage and the headline goes to `37%` without a reload.
+   `pinion-docs` done. The row turns sage and the headline goes to `37%` without a reload.
 4. Press `y`, then `c`, pasting after each: the cursor row's absolute path, then
    `re <id> (<title>): <path>` for the same row. Each shows a toast.
 5. Press `?`: the keys sheet. Every key on it works; `esc` closes it.

@@ -129,23 +129,24 @@ Both the MCP server and the app read projects from `DRIVER_ROOT`, default `~/.dr
 "track this in driver" is enough: the coordinator makes a project named after the repo directory and
 fills in phases and tasks from the conversation. Say more when you want a particular shape:
 
-> track this in driver as `pdk-2-sentry`. phases: `pdk-2.0` (bump the pdk and verify on beta),
-> `canaries` (two canary lambdas, verified in Sentry), `rollout` (one task per remaining lambda).
-> give each task a checklist of verification steps. then start on the first task.
+> track this in driver as `pinion-2-plugins`. phases: `pinion-2.0` (release 2.0 and verify it on the
+> example site), `canaries` (two canary plugins, verified on the example site), `rollout` (one task
+> per remaining plugin). give each task a checklist of verification steps. then start on the first
+> task.
 
 The coordinator should answer with one `create_project` and one `apply` that creates the phases and
 tasks. A typical `apply` after that:
 
 ```json
 {
-  "slug": "pdk-2-sentry",
-  "log": "t4-coa merged as #52; beta deploy 4415 is green.",
+  "slug": "pinion-2-plugins",
+  "log": "plugin-sitemap merged as #64; release 3.0.0 is published.",
   "ops": [
-    { "op": "task", "id": "t4-coa", "pr": "#52", "status": { "kind": "done" } },
+    { "op": "task", "id": "plugin-sitemap", "pr": "#64", "status": { "kind": "done" } },
     {
       "op": "task",
-      "id": "t4-authorization-platform",
-      "status": { "kind": "needs-you", "ask": "cold start +290ms: keep the 500ms reserve?" }
+      "id": "plugin-images",
+      "status": { "kind": "needs-you", "ask": "cold build +290ms: keep the 500ms reserve?" }
     }
   ]
 }
@@ -227,7 +228,7 @@ clears the filter, and `Home` `End` go to the first / last row.
 without typing its path:
 
 ```
-re t4-coa (t4-coa): /Users/you/.driver/pdk-2-sentry/03a-framework-apps/01-t4-coa.md
+re plugin-sitemap (plugin-sitemap): /Users/you/.driver/pinion-2-plugins/03a-framework-apps/01-plugin-sitemap.md
 ```
 
 A task names its id and title, a phase header its id and title, the project header the project's
@@ -259,7 +260,7 @@ Everything is plain markdown with YAML frontmatter. You can `cat`, `grep`, and `
   <project-slug>/
     project.md            # title, repo, started, updated; summary; then ## sections
     log.md                # append-only, oldest first: "## <ISO timestamp>" + text
-    <NN>-<phase-slug>/    # 00-pdk-2.0, 03a-framework-apps
+    <NN>-<phase-slug>/    # 00-pinion-2.0, 03a-framework-apps
       phase.md            # title; first line of the body is the phase note
       <NN>-<task-slug>.md # title, status (+ ask / blocked_on / blocked_by / why), repo?, pr?, updated
 ```
@@ -299,8 +300,8 @@ The full spec is in [`docs/plan.md`](docs/plan.md#file-layout). Real examples ar
 - **`bun run setup` fails.** The `✗` line says what failed and the `fix:` line under it what to run.
   Fix it and rerun; every step is safe to repeat.
 - **What did the server do?** It logs each tool call to stderr as one JSON line:
-  `{"tool":"apply","project":"pdk-2-sentry","ops":1,"ms":12,"error":null}`. stdout carries only MCP
-  messages. Your harness keeps the server's stderr in its MCP logs.
+  `{"tool":"apply","project":"pinion-2-plugins","ops":1,"ms":12,"error":null}`. stdout carries only
+  MCP messages. Your harness keeps the server's stderr in its MCP logs.
 
 </details>
 
@@ -330,10 +331,10 @@ The full spec is in [`docs/plan.md`](docs/plan.md#file-layout). Real examples ar
   [`packages/mcp/README.md`](packages/mcp/README.md).
 - `apps/desktop`: the Tauri v2 + Solid 2 app. See [`apps/desktop/README.md`](apps/desktop/README.md)
   for its layout and scripts.
-- `packages/core/fixtures/`: four sample projects (`pdk-2-sentry`, `driver`, `billing-ledger-v2`,
-  `onboarding-docs`) in `apply`'s canonical form. Tests, the browser build, and the e2e run use
-  them. To try the real app on them without touching `~/.driver`, use the fixtures line in the table
-  above.
+- `packages/core/fixtures/`: four sample projects (`pinion-2-plugins`, `driver`,
+  `billing-ledger-v2`, `onboarding-docs`) in `apply`'s canonical form. Tests, the browser build, and
+  the e2e run use them. To try the real app on them without touching `~/.driver`, use the fixtures
+  line in the table above.
 
 `bun run validate` must be green before work is done. It ends with `bun run e2e:web`, which drives
 the browser build in the installed Google Chrome (Playwright's `channel: "chrome"`), so Chrome must

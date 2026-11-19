@@ -84,7 +84,7 @@ const readYaml = (path: string, yaml: string): unknown => {
 
 /**
  * Writes frontmatter and a body as a markdown file. Keys with `undefined` values are left out, and
- * YAML quotes values where needed (`pr: "#204"`).
+ * YAML quotes values where needed (`pr: "#140"`).
  *
  * @example
  * writeDoc({ title: "a", pr: "#2" }, "Note.");

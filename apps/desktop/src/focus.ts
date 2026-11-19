@@ -30,7 +30,7 @@ export function focusSoon(find: () => HTMLElement | null | undefined): void {
  * The row of the main list with this key, if it is on the page.
  *
  * @example
- * listRow("task:t4-coa")?.focus();
+ * listRow("task:plugin-sitemap")?.focus();
  */
 export function listRow(key: string | undefined): HTMLElement | null {
   return key === undefined

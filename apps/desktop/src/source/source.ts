@@ -9,7 +9,7 @@ export type ProjectFiles = Map<string, string>;
  *
  * @example
  * const source = memorySource("/fixtures", files);
- * await source.slugs(); // ["driver", "pdk-2-sentry"]
+ * await source.slugs(); // ["driver", "pinion-2-plugins"]
  * await source.readProject("driver"); // Map { "project.md" => "---…", … }
  * const stop = await source.watch((path) => console.log("changed", path));
  */
@@ -32,8 +32,8 @@ export type FileSource = {
  * itself and anything with a segment that starts with a dot (`.lock`, `.tmp-*`).
  *
  * @example
- * slugOf("pdk-2-sentry/01-framework/phase.md"); // "pdk-2-sentry"
- * slugOf("pdk-2-sentry/.lock"); // null
+ * slugOf("pinion-2-plugins/01-framework/phase.md"); // "pinion-2-plugins"
+ * slugOf("pinion-2-plugins/.lock"); // null
  */
 export function slugOf(path: string): string | null {
   const slug = path.split("/")[0] ?? "";
