@@ -1,14 +1,17 @@
 #!/usr/bin/env bun
 import { mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { createDisk } from "./disk.ts";
 import { createServer } from "./server.ts";
 
 const EnvSchema = z.object({
-  DRIVER_ROOT: z.string().min(1).default(join(homedir(), ".driver")),
+  DRIVER_ROOT: z
+    .string()
+    .refine(isAbsolute, "DRIVER_ROOT must be an absolute path (`~` is not expanded)")
+    .default(join(homedir(), ".driver")),
   DRIVER_LOCK_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
 });
 

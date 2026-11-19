@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { cp, mkdtemp, rm } from "node:fs/promises";
+import { cp, mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -301,6 +301,26 @@ describe("driver MCP server over stdio", () => {
     expect(error).toContain(`${pdk(".lock")} is still there after ${LOCK_TIMEOUT_MS}ms`);
     expect(await tree(root)).toEqual(before);
   });
+
+  it.each(["~/.driver", ".driver"])(
+    "refuses to start with DRIVER_ROOT=%s and creates nothing",
+    async (relative) => {
+      const before = await readdir(root);
+      const proc = Bun.spawn([process.execPath, MAIN], {
+        cwd: root,
+        env: { DRIVER_ROOT: relative },
+        stdin: "ignore",
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      expect(await proc.exited).not.toBe(0);
+      expect(await new Response(proc.stderr).text()).toContain(
+        "DRIVER_ROOT must be an absolute path",
+      );
+      expect(await new Response(proc.stdout).text()).toBe("");
+      expect(await readdir(root)).toEqual(before);
+    },
+  );
 
   it("logs every call to stderr as one JSON line", async () => {
     await call("get_project", { slug: "pdk-2-sentry" }, GetProjectOutputSchema);
