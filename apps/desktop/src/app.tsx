@@ -174,7 +174,7 @@ export function App(props: { source: FileSource }) {
   return (
     <div class="grid h-screen grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_26px]">
       <Resizable controller={split} class="min-h-0">
-        <ResizablePanel id="sidebar" defaultSize="252px" minSize="180px" maxSize="420px">
+        <ResizablePanel id="sidebar" defaultSize="252px" minSize="252px" maxSize="420px">
           <Sidebar
             entries={projects.list()}
             current={current()?.slug ?? null}
