@@ -201,12 +201,16 @@ const folder = (path: string): string => path.split("/")[0] ?? path;
 
 const temp = (i: number, path: string): string => `.tmp-${i}-${path.split("/").at(-1) ?? path}`;
 
+const commit = ({ from, to }: { from: string; to: string }): Step => ({ kind: "rename", from, to });
+
 const steps = (before: Map<string, string>, after: Project, refs: ReadonlySet<string>): Plan => {
   const paths = refPaths(after);
   const files = renderFiles(after);
-  const changed = [...refs].map(
-    (ref) => [paths.get(ref) ?? fail(`no path for ${ref}`), files.get(ref) ?? ""] as const,
-  );
+  const writes = [...refs].map((ref, i) => {
+    const to = paths.get(ref) ?? fail(`no path for ${ref}`);
+    return { ref, from: temp(i, to), to, content: files.get(ref) ?? "" };
+  });
+  const isNew = (write: { ref: string }): boolean => !before.has(write.ref);
   const moves = [...paths].flatMap(([ref, to]) => {
     const from = before.get(ref);
     return from === undefined || from === to ? [] : [{ kind: "rename" as const, from, to }];
@@ -216,17 +220,12 @@ const steps = (before: Map<string, string>, after: Project, refs: ReadonlySet<st
   return {
     kind: "plan",
     project: after,
-    changed: [
-      ...new Set([...changed.map(([path]) => path), ...moves.map((move) => move.to)]),
-    ].toSorted(),
+    changed: [...new Set([...writes, ...moves].map((step) => step.to))].toSorted(),
     steps: [
-      ...changed.map(([path, content], i): Step => ({
-        kind: "write",
-        path: temp(i, path),
-        content,
-      })),
+      ...writes.map((write): Step => ({ kind: "write", path: write.from, content: write.content })),
+      ...writes.filter(isNew).map(commit),
       ...moves,
-      ...changed.map(([to], i): Step => ({ kind: "rename", from: temp(i, to), to })),
+      ...writes.filter((write) => !isNew(write)).map(commit),
       ...[...gone].map((path): Step => ({ kind: "remove", path })),
     ],
   };

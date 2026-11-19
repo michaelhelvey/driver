@@ -17,6 +17,9 @@ const current = parseProject(files);
 const run = (ops: unknown[], log = "something happened.") => {
   const result = planApply(current, { log, ops }, NOW);
   if (result.kind === "error") throw new Error(result.message);
+  result.steps.forEach((_, i) => {
+    parseProject(executePlan(files, { ...result, steps: result.steps.slice(0, i) }));
+  });
   const next = executePlan(files, result);
   return { plan: result, next, project: parseProject(next) };
 };
@@ -125,6 +128,14 @@ describe("planApply", () => {
       from: "03c-pdk-bump/02-t4-user-info.md",
       to: "03a-framework-apps/08-t4-user-info.md",
     });
+  });
+
+  it("moves a task into a phase made in the same batch; every tree mid-apply parses", () => {
+    const { project } = run([
+      { op: "phase", id: "follow-up", title: "follow-up" },
+      { op: "task", id: "t4-coa", phase: "follow-up" },
+    ]);
+    expect(task(project, "t4-coa").path).toBe("05-follow-up/01-t4-coa.md");
   });
 
   it("reorders a task with after and renumbers the phase", () => {

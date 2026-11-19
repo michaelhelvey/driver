@@ -232,8 +232,11 @@ other logic. Every path is relative to the project directory.
 2. `write` steps: write each new or changed file to a temp name in the project directory. Temp names
    start with a dot: `.tmp-<n>-<name>`.
 3. `rename` steps, in this order:
-   1. Renumber renames: move existing files to their new paths (new prefix, new phase folder).
-   2. Temp renames: move each temp file to its final path. This replaces the old content.
+   1. New-file renames: move the temp of each new phase or task to its final path. Every path has a
+      unique id in it, so nothing is there yet. This puts a new phase's `phase.md` in place before
+      tasks move into its folder.
+   2. Renumber renames: move existing files to their new paths (new prefix, new phase folder).
+   3. Temp renames: move each other temp file to its final path. This replaces the old content.
 
    Create the parent folder of each target if it does not exist.
 
