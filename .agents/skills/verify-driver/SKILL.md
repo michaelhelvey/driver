@@ -96,8 +96,19 @@ launching the temp copy; quit it before a full run.
 `bun --cwd apps/desktop dev`, then open `http://localhost:1420/` (strict port: it fails if 1420 is
 taken). The browser build reads the bundled `packages/core/fixtures` from memory, so nothing on disk
 changes. Use it to look at a UI change;
-`bun apps/desktop/scripts/screenshot.ts <url> <out.png> [keys]` screenshots it in Chrome after
-pressing keys (comma separated, e.g. `2,t`).
+`bun apps/desktop/scripts/screenshot.ts <url> <out.png> [keys] [WIDTHxHEIGHT]` screenshots it in
+Chrome after pressing keys (comma separated, e.g. `2,t`), at a viewport of `WIDTHxHEIGHT` (default
+`1280x820`). After a visible UI change, regenerate the root README's images in `docs/assets/` the
+way the README's Development section says.
+
+## The root README
+
+After any change to `README.md`, run `bun apps/desktop/scripts/readme-preview.ts [out-dir]` (default
+`/tmp/driver-readme`). It renders the README offline with `marked` (GFM, heading anchors,
+`[!WARNING]` alerts) and `github-markdown-css`, fails on any relative link, image or `#anchor` that
+does not resolve, and screenshots the page in Chrome at 1000px wide as `light.png` and `dark.png`,
+so you can look at it in both of GitHub's color schemes. Mermaid blocks show as code; GitHub draws
+them. Never send the README to an external renderer.
 
 ## The app on real files
 

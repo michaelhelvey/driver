@@ -1,13 +1,17 @@
 import { chromium } from "playwright";
 
-const USAGE = "bun scripts/screenshot.ts <url> <out.png> [keys, comma separated, e.g. 2,t]";
+const USAGE =
+  "bun scripts/screenshot.ts <url> <out.png> [keys, comma separated, e.g. 2,t] [WIDTHxHEIGHT, default 1280x820]";
 
-const [url, out, keys = ""] = Bun.argv.slice(2);
+const [url, out, keys = "", size = "1280x820"] = Bun.argv.slice(2);
 if (url === undefined || out === undefined) throw new Error(USAGE);
+const dimensions = /^(\d+)x(\d+)$/.exec(size);
+if (dimensions === null) throw new Error(USAGE);
+const viewport = { width: Number(dimensions[1]), height: Number(dimensions[2]) };
 
 const browser = await chromium.launch({ channel: "chrome" });
 try {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 820 } });
+  const page = await browser.newPage({ viewport });
   const problems: string[] = [];
   page.on("console", (message) => {
     if (["error", "warning"].includes(message.type())) problems.push(message.text());

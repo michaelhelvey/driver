@@ -61,9 +61,13 @@ shows an error in the window.
 
 ## Scripts
 
-- `scripts/screenshot.ts <url> <out.png> [keys]`: screenshots the browser build in Chrome after
-  pressing `keys` (comma separated, like `2,t` for pdk-2-sentry in the cocoa theme). Run the browser
-  dev server first.
+- `scripts/screenshot.ts <url> <out.png> [keys] [WIDTHxHEIGHT]`: screenshots the browser build in
+  Chrome after pressing `keys` (comma separated, like `2,t` for pdk-2-sentry in the cocoa theme), at
+  a viewport of `WIDTHxHEIGHT` (default `1280x820`; the root README's images use `1440x900`). Run
+  the browser dev server first.
+- `scripts/readme-preview.ts [out-dir]`: renders the root README offline the way GitHub does, fails
+  on broken relative links and anchors, and screenshots it in light and dark. See the verify-driver
+  skill.
 - `scripts/e2e.ts`: copies the fixtures to a temp `DRIVER_ROOT` and runs `wdio` (called by
   `bun run e2e:desktop` after the e2e build). The spec starts the real MCP server (`packages/mcp`)
   on that root and runs the plan's user verification steps 1–3 with keys only.
