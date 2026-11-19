@@ -1,0 +1,2400 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="darkreader-lock">
+<title>driver</title>
+<style>
+:root {
+  --font: "Berkeley Mono", "TX-02", "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --fs: 13px;
+  --lh: 1.65;
+  --sidebar-w: 252px;
+  --reader-w: min(46vw, 700px);
+}
+
+:root, [data-theme="paper"] {
+  --bg: #f4ede1;
+  --bg-sunk: #ece3d4;
+  --panel: #f9f5ed;
+  --ink: #2b241e;
+  --ink-2: #5a4e42;
+  --muted: #8e7f6d;
+  --faint: #c6b8a3;
+  --rule: #e0d4c1;
+  --focus: #e9dcc7;
+  --code-bg: #efe7d9;
+  --accent: #b8532b;
+  --amber: #a87410;
+  --amber-wash: #f1e2bf;
+  --plum: #993a50;
+  --sage: #60754a;
+  --shadow: 0 30px 80px -30px rgba(80, 50, 20, .45), 0 2px 6px rgba(80, 50, 20, .08);
+  --grain: .07;
+  --grain-blend: multiply;
+  color-scheme: light;
+}
+
+[data-theme="cocoa"] {
+  --bg: #1d1915;
+  --bg-sunk: #171410;
+  --panel: #221d18;
+  --ink: #ece0cc;
+  --ink-2: #c4b59e;
+  --muted: #8d7f6c;
+  --faint: #4d4339;
+  --rule: #2f2822;
+  --focus: #2d2620;
+  --code-bg: #28221c;
+  --accent: #e2804f;
+  --amber: #deaa4a;
+  --amber-wash: #33291a;
+  --plum: #d26f83;
+  --sage: #a6b57d;
+  --shadow: 0 30px 80px -20px rgba(0, 0, 0, .7), 0 2px 6px rgba(0, 0, 0, .3);
+  --grain: .05;
+  --grain-blend: screen;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: var(--fs)/var(--lh) var(--font);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  transition: background .25s, color .25s;
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--grain);
+  mix-blend-mode: var(--grain-blend);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .45  0 0 0 0 .33  0 0 0 0 .2  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  z-index: 100;
+}
+::selection { background: color-mix(in oklab, var(--accent) 28%, transparent); }
+
+kbd {
+  font: inherit;
+  font-size: 10.5px;
+  line-height: 1;
+  padding: 2px 5px 1px;
+  border: 1px solid var(--rule);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  color: var(--ink-2);
+  background: var(--panel);
+  white-space: nowrap;
+}
+
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: .94em; font-family: inherit; }
+
+/* ───────────── layout ───────────── */
+
+#app {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr) 0px;
+  grid-template-rows: minmax(0, 1fr) 26px;
+  height: 100vh;
+  transition: grid-template-columns .22s cubic-bezier(.3, .7, .2, 1);
+}
+#app.reader-open { grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--reader-w); }
+#app.no-sidebar { --sidebar-w: 0px; }
+
+/* ───────────── sidebar ───────────── */
+
+#sidebar {
+  background: var(--bg-sunk);
+  border-right: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  white-space: nowrap;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 20px 18px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  font-size: 14px;
+}
+.brand .mark { color: var(--accent); font-size: 15px; }
+
+.side-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 20px;
+  font-size: 10.5px;
+  letter-spacing: .12em;
+  color: var(--muted);
+}
+.side-label::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+
+.proj { position: relative; padding: 9px 20px 10px; cursor: pointer; }
+.proj:hover { background: color-mix(in oklab, var(--bg) 50%, transparent); }
+.proj.active { background: var(--bg); }
+.proj.active::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 8px; bottom: 8px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+}
+.proj .pname { display: flex; gap: 10px; align-items: baseline; }
+.proj .pidx { color: var(--faint); font-size: 11px; width: 1ch; }
+.proj.active .pidx { color: var(--accent); }
+.proj .pslug { overflow: hidden; text-overflow: ellipsis; }
+.proj.active .pslug { font-weight: 700; }
+.proj .ppct { margin-left: auto; color: var(--faint); font-size: 11px; }
+.proj.active .ppct { color: var(--muted); }
+.proj .pmeta { display: flex; gap: 10px; margin-left: calc(1ch + 10px); font-size: 11px; color: var(--muted); }
+.proj .pmeta .badges { margin-left: auto; display: flex; gap: 8px; }
+
+
+.side-foot {
+  margin-top: auto;
+  padding: 16px 20px 18px;
+  font-size: 11px;
+  color: var(--muted);
+  border-top: 1px solid var(--rule);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 7px 12px;
+  align-items: center;
+}
+.side-foot .where { grid-column: 1 / -1; color: var(--faint); margin-bottom: 4px; }
+
+/* ───────────── main ───────────── */
+
+#main { display: flex; flex-direction: column; min-width: 0; position: relative; }
+#scroll { overflow-y: auto; flex: 1; }
+.page { max-width: 880px; margin: 0 auto; padding: 46px 52px 140px; }
+
+#filterbar {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 52px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--bg-sunk);
+  font-size: 12.5px;
+}
+#filterbar.on { display: flex; }
+#filterbar .slash { color: var(--amber); font-weight: 700; }
+#filterbar input { all: unset; flex: 1; font: inherit; color: var(--ink); caret-color: var(--amber); }
+#filterbar .count { color: var(--muted); font-size: 11.5px; }
+#filterbar .hints { color: var(--muted); font-size: 11px; display: flex; gap: 6px; align-items: center; }
+
+[data-nav] { scroll-margin: 70px 0 70px; cursor: default; }
+
+.proj-head { margin: 0 -16px; padding: 10px 16px 14px; border-radius: 10px; }
+.proj-head.cur { background: var(--focus); }
+.crumb { color: var(--muted); font-size: 11.5px; }
+.crumb b { color: var(--ink-2); font-weight: 400; }
+h1.title {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin: 4px 0 14px;
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -.03em;
+}
+.brief { color: var(--ink-2); max-width: 70ch; font-size: 13.5px; }
+.brief p { margin: 0 0 .75em; }
+.byline { color: var(--muted); font-size: 11.5px; margin-top: 4px; }
+
+.headline { display: flex; align-items: baseline; gap: 16px; margin-top: 30px; }
+.headline .pct { font-size: 34px; font-weight: 700; letter-spacing: -.04em; line-height: 1; }
+.headline .pct small { font-size: 18px; color: var(--muted); font-weight: 400; margin-left: 2px; }
+.headline .of { color: var(--ink-2); white-space: nowrap; }
+.headline .of b { color: var(--ink); }
+.headline .of .sk { color: var(--muted); }
+.headline .now { margin-left: auto; color: var(--muted); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.headline .now b { color: var(--ink-2); font-weight: 400; }
+.progress { height: 3px; margin-top: 14px; border-radius: 3px; background: var(--rule); overflow: hidden; }
+.progress i { display: block; height: 100%; border-radius: 3px; background: var(--sage); }
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 38px 0 10px;
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: .12em;
+  color: var(--muted);
+}
+.label::after { content: ""; flex: 1; height: 1px; background: var(--rule); order: 1; }
+.label .n { color: var(--c); letter-spacing: 0; }
+.label .aside { order: 2; letter-spacing: 0; color: var(--faint); }
+
+/* statuses */
+.st-needs-you { --c: var(--amber); }
+.st-blocked   { --c: var(--plum); }
+.st-doing     { --c: var(--accent); }
+.st-todo      { --c: var(--faint); }
+.st-done      { --c: var(--sage); }
+.st-skipped   { --c: var(--faint); }
+.glyph { color: var(--c); text-align: center; }
+.st-todo .glyph, .glyph.st-todo { color: var(--muted); }
+
+/* rows */
+.row {
+  display: grid;
+  grid-template-columns: 1.5ch 2ch 5.5ch minmax(0, 1fr) auto 5ch 4ch;
+  column-gap: 8px;
+  align-items: baseline;
+  padding: 5px 14px 5px 8px;
+  border-radius: 6px;
+}
+.row .caret, .phase-head .caret { color: var(--accent); opacity: 0; }
+.cur > .caret { opacity: 1; }
+.row.cur { background: var(--focus); }
+.row .tid { color: var(--faint); font-size: 11.5px; }
+.row.cur .tid { color: var(--muted); }
+.row .ttl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .pr { color: var(--muted); font-size: 11.5px; }
+.row .steps { color: var(--faint); font-size: 11.5px; text-align: right; }
+.row.cur .steps { color: var(--muted); }
+.row .age { color: var(--faint); font-size: 11.5px; text-align: right; }
+.row.cur .age { color: var(--muted); }
+.row.st-done .ttl { color: var(--muted); }
+.row.st-skipped .ttl { color: var(--faint); text-decoration: line-through; }
+
+.attn-card {
+  border-radius: 10px;
+  padding: 4px;
+  margin: 0 -4px;
+  background: color-mix(in oklab, var(--amber-wash) 55%, transparent);
+  border: 1px solid color-mix(in oklab, var(--amber) 18%, transparent);
+}
+.attn-card.blocked { background: transparent; border-color: transparent; }
+.attn-card .row { grid-template-columns: 1.5ch 2ch minmax(0, 1fr) auto 4ch; padding-top: 7px; padding-bottom: 8px; }
+.attn-card .row.cur { background: color-mix(in oklab, var(--focus) 85%, var(--amber-wash)); }
+.attn-card.blocked .row.cur { background: var(--focus); }
+.why { font-size: 12px; color: var(--ink-2); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.why .arr { color: var(--c); }
+.why code, .phase-note code { background: none; padding: 0; color: var(--ink); }
+.where { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.calm { color: var(--muted); padding: 6px 8px; }
+.calm .sun { color: var(--amber); }
+
+.recent { margin: 0 -16px; padding: 6px 16px 8px; border-radius: 10px; }
+.recent.cur { background: var(--focus); }
+.log-row { display: grid; grid-template-columns: 4ch minmax(0, 1fr); gap: 14px; padding: 2px 0; font-size: 12.5px; }
+.log-row .t { color: var(--faint); text-align: right; }
+.log-row .m { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log-row:first-child .m { color: var(--ink-2); }
+.log-row:first-child .t { color: var(--muted); }
+.log-row code { background: none; padding: 0; }
+
+/* phases */
+.phase { margin-top: 18px; }
+.phase-head {
+  display: grid;
+  grid-template-columns: 1.5ch 2ch auto minmax(0, 1fr) 150px 6ch;
+  column-gap: 8px;
+  align-items: center;
+  padding: 6px 14px 6px 8px;
+  border-radius: 6px;
+}
+.phase-head.cur { background: var(--focus); }
+.phase-head .fold { color: var(--faint); text-align: center; }
+.phase-head .pnum { color: var(--accent); font-weight: 700; }
+.phase-head .ptitle { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phase.all-done .pnum, .phase.all-done .ptitle { color: var(--muted); }
+.pbar { display: flex; gap: 2px; height: 5px; }
+.pbar i { flex: 1; border-radius: 1px; background: var(--c); }
+.pcount { color: var(--muted); font-size: 11.5px; text-align: right; }
+.phase-note {
+  margin: 0 0 4px calc(8px + 1.5ch + 8px + 2ch + 8px);
+  padding-right: 14px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tasks { margin-left: calc(8px + 1.5ch + 8px + 1ch); border-left: 1px solid var(--rule); }
+.tasks .row { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+
+.endmark { margin-top: 56px; color: var(--faint); font-size: 11.5px; text-align: center; }
+
+/* ───────────── reader ───────────── */
+
+#reader {
+  background: var(--panel);
+  border-left: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+#reader::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .2s;
+}
+#reader.focused::before { transform: scaleX(1); }
+.reader-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 26px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 11.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.reader-head .rpath { overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.reader-head .rpath b { color: var(--ink); font-weight: 400; }
+.reader-head .rkeys { display: flex; gap: 6px; align-items: center; font-size: 11px; }
+.reader-body { overflow-y: auto; flex: 1; padding: 22px 30px 120px; min-width: 0; }
+
+.fm { font-size: 12px; color: var(--muted); margin-bottom: 18px; }
+.fm-rule { color: var(--faint); letter-spacing: .1em; }
+.fm-row { display: grid; grid-template-columns: 12ch minmax(0, 1fr); }
+.fm-row .v { color: var(--ink-2); }
+.fm-row .v .jump { color: var(--muted); margin-left: 8px; }
+.r-ctx { color: var(--muted); font-size: 11.5px; }
+.r-ctx .sep { color: var(--faint); margin: 0 6px; }
+.r-title { font-size: 20px; line-height: 1.3; letter-spacing: -.02em; margin: 2px 0 18px; }
+
+.md p { margin: 0 0 12px; max-width: 74ch; }
+.md > *:first-child { margin-top: 0; }
+.md h2, .md h3, .md h4 { font-size: 13px; font-weight: 700; margin: 26px 0 8px; }
+.md .hash { color: var(--faint); font-weight: 400; }
+.md strong { font-weight: 700; }
+.md a { color: var(--accent); text-decoration: underline; text-decoration-color: var(--faint); text-underline-offset: 3px; }
+.md .ref { color: var(--accent); }
+.md hr { border: 0; border-top: 1px dashed var(--rule); margin: 20px 0; }
+.md ul, .md ol { margin: 0 0 12px; padding: 0; list-style: none; }
+.md li { position: relative; padding-left: 3ch; margin: 2px 0; }
+.md ul > li::before { content: "–"; position: absolute; left: .5ch; color: var(--faint); }
+.md ol { counter-reset: n; }
+.md ol > li { counter-increment: n; }
+.md ol > li::before { content: counter(n) "."; position: absolute; left: 0; color: var(--muted); }
+.md li.task { padding-left: 4.5ch; }
+.md li.task::before { content: none; }
+.md li.task .box { position: absolute; left: 0; color: var(--faint); }
+.md li.task.on .box { color: var(--sage); }
+.md li.task.on .txt { color: var(--muted); }
+.md blockquote { margin: 0 0 14px; padding: 4px 0 4px 16px; border-left: 2px solid var(--amber); color: var(--ink-2); }
+.md blockquote p:last-child { margin-bottom: 0; }
+.md pre {
+  position: relative;
+  margin: 0 0 14px;
+  padding: 12px 16px;
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 12.25px;
+  line-height: 1.6;
+}
+.md pre code { background: none; padding: 0; font-size: inherit; }
+.md pre .lang { position: absolute; top: 6px; right: 10px; font-size: 10.5px; color: var(--faint); }
+.md pre .c { color: var(--muted); }
+.md pre .o { color: var(--sage); }
+.md pre .ps { color: var(--faint); user-select: none; }
+
+.raw { font-size: 12.25px; white-space: pre-wrap; word-break: break-word; margin: 0; }
+.raw .d { color: var(--faint); }
+.raw .k { color: var(--accent); }
+.raw .h { font-weight: 700; }
+
+.subtasks .row { padding-left: 0; }
+
+/* ───────────── status line ───────────── */
+
+#status {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: stretch;
+  font-size: 11px;
+  background: var(--bg-sunk);
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+}
+#status > * { display: flex; align-items: center; padding: 0 12px; }
+#status .mode { font-weight: 700; letter-spacing: .1em; color: var(--bg); background: var(--ink); min-width: 9ch; justify-content: center; }
+#status .mode.READER { background: var(--accent); }
+#status .mode.FILTER { background: var(--amber); }
+#status .mode.PALETTE, #status .mode.KEYS { background: var(--sage); }
+#status .sl-path { min-width: 0; overflow: hidden; text-overflow: ellipsis; flex: 1; display: block; line-height: 25px; }
+#status .sl-path b { color: var(--ink-2); font-weight: 400; }
+#status .seg { border-left: 1px solid var(--rule); gap: 6px; }
+#status .seg .g { color: var(--c); }
+
+/* ───────────── overlays ───────────── */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in oklab, var(--bg) 60%, transparent);
+  backdrop-filter: blur(3px) saturate(.9);
+  display: none;
+  z-index: 50;
+}
+.scrim.on { display: block; animation: fade .12s ease-out; }
+@keyframes fade { from { opacity: 0; } }
+@keyframes rise { from { opacity: 0; transform: translate(-50%, 6px); } }
+
+.card {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  animation: rise .16s cubic-bezier(.3, .7, .2, 1);
+}
+
+.palette { top: 13vh; width: min(660px, 92vw); }
+.pal-input { display: flex; align-items: center; gap: 12px; padding: 15px 18px; border-bottom: 1px solid var(--rule); }
+.pal-input .prompt { color: var(--accent); font-weight: 700; }
+.pal-input input { all: unset; flex: 1; font: inherit; font-size: 14px; color: var(--ink); caret-color: var(--accent); }
+.pal-input input::placeholder { color: var(--faint); }
+.pal-list { max-height: 54vh; overflow-y: auto; padding: 6px; }
+.pal-group { padding: 10px 12px 4px; font-size: 10.5px; letter-spacing: .12em; color: var(--muted); }
+.pal-item {
+  display: grid;
+  grid-template-columns: 2ch minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 7px 12px;
+  border-radius: 7px;
+  scroll-margin: 8px;
+}
+.pal-item.sel { background: var(--focus); }
+.pal-item .pl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pal-item .ps { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
+.pal-item mark { background: none; color: var(--accent); font-weight: 700; }
+.pal-item .gl { text-align: center; color: var(--c, var(--muted)); }
+.pal-empty { padding: 22px; color: var(--muted); text-align: center; }
+.pal-foot { display: flex; gap: 14px; padding: 9px 16px; border-top: 1px solid var(--rule); font-size: 11px; color: var(--muted); }
+.pal-foot span { display: flex; gap: 6px; align-items: center; }
+
+.help { top: 9vh; width: min(780px, 94vw); padding: 26px 30px 22px; }
+.help h3 { margin: 0 0 4px; font-size: 15px; letter-spacing: -.01em; }
+.help .sub { color: var(--muted); font-size: 12px; margin-bottom: 18px; }
+.help-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 40px; }
+.help-group { margin-bottom: 14px; }
+.help-group .hl { font-size: 10.5px; letter-spacing: .12em; color: var(--muted); margin-bottom: 6px; display: flex; gap: 8px; align-items: center; }
+.help-group .hl::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.help-row { display: grid; grid-template-columns: 13ch 1fr; padding: 2px 0; align-items: center; }
+.help-row .keys { display: flex; gap: 4px; }
+.help-row .d { color: var(--ink-2); }
+.help .legend { display: flex; gap: 18px; margin-top: 8px; padding-top: 14px; border-top: 1px dashed var(--rule); font-size: 12px; color: var(--ink-2); }
+
+.toast {
+  position: fixed;
+  right: 22px;
+  bottom: 42px;
+  background: var(--ink);
+  color: var(--bg);
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity .18s, transform .18s;
+  pointer-events: none;
+  z-index: 60;
+  max-width: 64vw;
+}
+.toast.on { opacity: 1; transform: none; }
+.toast .cmd { display: block; margin-top: 3px; opacity: .6; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.which {
+  position: fixed;
+  left: 50%;
+  bottom: 40px;
+  transform: translateX(-50%);
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 11.5px;
+  color: var(--ink-2);
+  box-shadow: var(--shadow);
+  display: none;
+  gap: 14px;
+  z-index: 60;
+}
+.which.on { display: flex; }
+.which span { display: flex; gap: 6px; align-items: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <aside id="sidebar"></aside>
+  <main id="main">
+    <div id="filterbar">
+      <span class="slash">/</span>
+      <input id="filter" spellcheck="false" autocomplete="off" placeholder="filter tasks…">
+      <span class="count" id="filtercount"></span>
+      <span class="hints"><kbd>↵</kbd> keep <kbd>esc</kbd> clear</span>
+    </div>
+    <div id="scroll"></div>
+  </main>
+  <section id="reader"></section>
+  <footer id="status"></footer>
+</div>
+
+<div class="scrim" id="palette-scrim">
+  <div class="card palette">
+    <div class="pal-input"><span class="prompt">›</span><input id="pal-q" spellcheck="false" autocomplete="off" placeholder="jump to a project, task, or command"></div>
+    <div class="pal-list" id="pal-list"></div>
+    <div class="pal-foot">
+      <span><kbd>↑</kbd><kbd>↓</kbd> move</span>
+      <span><kbd>↵</kbd> go</span>
+      <span><kbd>esc</kbd> close</span>
+      <span style="margin-left:auto">everything is a file · read-only</span>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="help-scrim">
+  <div class="card help" id="help"></div>
+</div>
+
+<div class="which" id="which"></div>
+<div class="toast" id="toast"></div>
+
+<!--
+  ~/.driver, mocked. each script tag is one file on disk, verbatim.
+  the UI parses them exactly the way the real thing will.
+  mockups/ is excluded from `vp fmt`: the formatter would indent these and break the frontmatter.
+-->
+
+<script type="text/x-driver" data-path="pdk-2-sentry/project.md">
+---
+title: pdk-2-sentry
+repo: ~/dev/t4/t4-platform-lambda
+rex: 01JD7Q3V8MZ4-coordinator
+started: 2026-11-10
+updated: 2026-11-19T07:38
+---
+Moving every lambda onto pdk 2.0's telemetry layer: a Rust Sentry extension, a Node preload, and the `@transport4/sentry` facade. Phase 00 shipped in #46 and `@transport4/pdk@2.0.0` is published. The framework minor is merged; both canaries are on alpha now.
+
+Two things need you: a docs review in `t4-agent-skills`, and a cold-start call on auth-platform. Nothing in phase 03 moves until both canaries are green on beta.
+
+## the done rule
+
+A repo is done when it's verified on alpha (traffic, config, logs, Sentry, a forced crash), its PR is merged, and its beta deploy is green. No beta checks — beta has no meaningful traffic.
+
+## decisions
+
+- no std-deps layer in 2.0. apps bundle everything; only `@aws-sdk/*` stays external. (11/17)
+- auth-platform starts from `main` and replaces `pt-1351-sentry-tracing-metrics`, cherry-picking the Django and `traceData` commits.
+- send policy: hold only, no batching. nothing goes upstream while an invoke runs; buffered events go after `runtimeDone`.
+- `setTags` is on the facade.
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/log.md">
+---
+title: log
+---
+## 2026-11-19 07:38
+t4-transit-times is on alpha. Traffic and config look right; waiting for the forced crash to land in Sentry before I call it alpha verified.
+
+## 2026-11-19 07:02
+auth-platform alpha deploy is green, but authorizer cold start went 652 → 941ms. It's `SENTRY_TIMEOUT_RESERVE_MS`. Need a call from you in `02.2`.
+
+## 2026-11-19 06:15
+platform-framework minor merged as #48 and released. `FRAMEWORK_EXTERNALS` is gone. Opened the docs PR in t4-agent-skills (#31).
+
+## 2026-11-18 16:40
+Asked in #platform whether `CT-597-lambda` in t4-user-info is merging soon. It changes which treatment that repo gets.
+
+## 2026-11-18 11:20
+pulse-scanner: started teaching `platform-awareness.ts` that pdk 2.x has no std-deps layer.
+
+## 2026-11-17 20:51
+Phase 00 complete: #46 merged as `3a24ff6`, deploy_beta 44154822350 green, `@transport4/pdk@2.0.0` and `@transport4/sentry@2.0.0` published.
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/00-pdk-2.0/phase.md">
+---
+title: pdk 2.0 — extension, preload, facade
+---
+Everything ships from t4-platform-lambda first. Consumers can't move until pdk 2.0 is released with `sentryDSN` back. All of it landed in one PR, #46.
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/00-pdk-2.0/01-plan-doc.md">
+---
+title: plan doc
+status: done
+repo: t4-platform-lambda
+pr: "#46"
+updated: 2026-11-17T20:51
+---
+Done: merged in #46 (`3a24ff6`), deploy_beta 44154822350 green.
+
+- [x] §2 language + constraints (Rust, 2 threads, no async)
+- [x] rollout section + phases
+- [x] t4-authorization-platform section
+- [x] dashboard management docs
+- [x] trace-header fill policy
+- [x] PR merged
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/00-pdk-2.0/02-extension-crate.md">
+---
+title: extension crate (rust)
+status: done
+repo: t4-platform-lambda
+pr: "#46"
+updated: 2026-11-17T20:51
+---
+Done: merged in #46, beta green.
+
+- [x] lifecycle: register, listen, subscribe, `/next` loop
+- [x] relay: DSN check, header rewrite, keep-alive upstream
+- [x] crash reporting (timeout, OOM, init failure)
+- [x] platform metrics from `platform.report`
+- [x] arm64 + x86_64 musl builds in CI
+- [x] PR merged
+- [x] beta deploy
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/00-pdk-2.0/03-preload.md">
+---
+title: node preload
+status: done
+repo: t4-platform-lambda
+pr: "#46"
+updated: 2026-11-17T20:51
+---
+Done: merged in #46, beta green.
+
+- [x] `T4_SENTRY_INSTRUMENT` (default `http,aws`)
+- [x] `/invocation` checkpoint + facade registration
+- [x] continue trace from `clientContext.custom`
+- [x] `orgId` from `SENTRY_ORG_ID`
+- [x] esbuild `sideEffects` workaround plugin
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/00-pdk-2.0/04-facade.md">
+---
+title: "@transport4/sentry facade"
+status: done
+repo: t4-platform-lambda
+pr: "#46"
+updated: 2026-11-17T20:51
+---
+Done: merged in #46 and published as `@transport4/sentry@2.0.0`.
+
+- [x] facade functions, no-op without preload
+- [x] CI asserts every function exists on the bundled SDK
+- [x] published
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/00-pdk-2.0/05-pdk-sentry-dsn.md">
+---
+title: sentryDSN back in the pdk
+status: done
+repo: t4-platform-lambda
+pr: "#46"
+updated: 2026-11-17T20:51
+---
+Done: merged in #46, beta green.
+
+- [x] telemetry layer zips shipped in `@transport4/pdk`; one LayerVersion per arch per stack
+- [x] DSN rewrite + `SENTRY_UPSTREAM_DSN` + `SENTRY_ORG_ID` + `NODE_OPTIONS`
+- [x] `PlatformPythonLambda`: extension only, no preload
+- [x] this repo's authorizers opted in
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/00-pdk-2.0/06-std-deps.md">
+---
+title: remove the std-deps layer from 2.0
+status: done
+repo: t4-platform-lambda
+pr: "#46"
+updated: 2026-11-17T20:51
+---
+Scope changed mid-flight: you decided 2.0 has no std-deps layer at all, so the first three steps were skipped.
+
+- [x] this repo's lambdas bundle every dependency
+- [x] remove `@transport4/pdk/std-deps`, `stdDeps`, `lambdaStandardDepsLayerArn`
+- [x] freeze `layer/nodejs` at main's contents for pdk 1.x
+
+Laptop cold start went 250/395/506ms → 126/136/146ms for authorizer / oidc-waypoint / cloudwatch-alarm-handler.
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/00-pdk-2.0/07-verification.md">
+---
+title: verification harness + alpha e2e
+status: done
+repo: t4-platform-lambda
+pr: "#46"
+updated: 2026-11-17T17:26
+---
+- [x] fake Runtime API harness
+- [x] fake ingest (auth + byte-identical bodies)
+- [x] alpha e2e numbers
+
+Init avg on alpha: auth0 1055 → 652, entra 998 → 872, oidc 741 → 568, alarm 782 → 492 ms.
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/00-pdk-2.0/08-pdk-release.md">
+---
+title: release pdk 2.0.0
+status: done
+repo: t4-platform-lambda
+pr: "#46"
+updated: 2026-11-17T20:51
+---
+`@transport4/pdk@2.0.0` (with `layers/telemetry-{arm64,x86_64}.zip`) and `@transport4/sentry@2.0.0` are on the registry.
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/00-pdk-2.0/09-cloudwatch-log-loss.md">
+---
+title: cloudwatch log loss
+status: skipped
+repo: t4-platform-lambda
+updated: 2026-11-17T18:00
+---
+Not reproducible across 15 bursts / 18k invokes. You accepted it as transient on the AWS side (11/17).
+
+- [x] reproduce in isolation
+- [ ] root cause
+- [x] fix or accept
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/01-framework/phase.md">
+---
+title: platform-framework minor + docs
+---
+Framework stops knowing about the layer: remove the public `FRAMEWORK_EXTERNALS` and bundle everything. Then the docs and scanners that still describe the old world.
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/01-framework/01-platform-framework.md">
+---
+title: platform-framework
+status: done
+repo: platform-framework
+pr: "#48"
+updated: 2026-11-19T06:15
+---
+Done: merged as #48 and released as a minor (your call, even though removing `FRAMEWORK_EXTERNALS` is technically breaking).
+
+- [x] remove the public `FRAMEWORK_EXTERNALS` export
+- [x] bundle everything else (no `external` option)
+- [x] update `agent-skill` docs
+- [x] alpha verified
+- [x] PR merged
+- [x] beta deploy green
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/01-framework/02-t4-agent-skills.md">
+---
+title: t4-agent-skills
+status: needs-you
+repo: t4-agent-skills
+pr: "#31"
+ask: review #31 — docs only, 4 files
+updated: 2026-11-19T06:15
+---
+`skills/platform-framework/*` still taught agents to import `FRAMEWORK_EXTERNALS`. Any agent following it on a pdk 2.x repo would write a build config that doesn't compile.
+
+## what changed
+
+- `skills/platform-framework/SKILL.md` — bundling section rewritten
+- `skills/platform-framework/reference/build.md` — externals list removed
+- `skills/platform-framework/reference/sentry.md` — new: `sentryDSN` + the facade
+- `skills/platform-framework/reference/layers.md` — deleted
+
+## verification
+
+~~~sh
+rg -n "FRAMEWORK_EXTERNALS|std-deps|stdDeps" skills/
+# → no matches
+~~~
+
+- [x] PR open
+- [ ] **you:** review #31
+- [ ] PR merged
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/01-framework/03-pulse-scanner.md">
+---
+title: pulse-scanner
+status: doing
+repo: t4-pulse-dashboard
+updated: 2026-11-18T11:20
+---
+`packages/core/src/scanner/platform-awareness.ts` needs to know that pdk 2.x has no std-deps layer, and about the new telemetry layer. Otherwise Pulse flags every migrated repo as "missing std-deps".
+
+- [x] scanner recognizes pdk 2.x
+- [ ] stop flagging missing std-deps on 2.x
+- [ ] report telemetry layer version
+- [ ] alpha verified
+- [ ] PR merged
+- [ ] beta deploy green
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/02-canaries/phase.md">
+---
+title: canaries
+---
+Two repos that together exercise everything: a small DSN app, and auth-platform (Python + Node, client-context traces, streamed spans). Phase 03 waits until both are green on beta.
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/02-canaries/01-t4-transit-times.md">
+---
+title: t4-transit-times
+status: doing
+repo: t4-transit-times
+pr: "#112"
+updated: 2026-11-19T07:38
+---
+Picked as the first canary: it has a DSN, no std-deps, and it's small. On alpha now.
+
+- [x] bump pdk 2.x
+- [x] drop `@sentry/*` externals/deps, use facade
+- [ ] alpha verified
+- [ ] PR merged
+- [ ] beta deploy green
+
+## right now
+
+Traffic and config look right. Waiting for the forced crash to show up in Sentry.
+
+## verification
+
+~~~sh
+aws lambda invoke --function-name t4-transit-times-alpha-api \
+  --payload '{"__t4_force_crash":true}' /dev/null
+sentry issue list -p t4-transit-times --query "is:unresolved" --period 15m
+# → one new issue: Error: forced crash (t4 canary)
+~~~
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/02-canaries/02-t4-authorization-platform.md">
+---
+title: t4-authorization-platform
+status: needs-you
+repo: t4-authorization-platform
+pr: "#204"
+ask: "authorizer cold start +290ms — keep 500ms reserve, or drop to 200ms?"
+updated: 2026-11-19T07:02
+---
+Alpha deploy is green and traces flow end to end, Django → auth-engine. But the authorizer's cold start regressed.
+
+- before: **652ms** init (pdk 2.0, no reserve)
+- now: **941ms** init with `SENTRY_TIMEOUT_RESERVE_MS=500`
+- with `200`: **688ms**, measured at 1769MB
+
+## options
+
+1. **keep 500ms.** safest; crash reports survive even slow sentry.io round trips. +290ms on every cold start.
+2. **drop to 200ms.** p99 sentry.io RTT from us-east-1 is 140ms over the last week. we'd lose a crash report on a very bad day.
+
+I'd pick **200ms**. Telemetry is best-effort by design, and the authorizer is in front of every request.
+
+## progress
+
+- [x] both functions: `sentryDSN`, drop hand-set DSN env + `overrides.layers`
+- [x] auth-engine: delete `src/sentry.ts`, use facade
+- [ ] shrink `SENTRY_TIMEOUT_RESERVE_MS`, re-measure at 1769MB
+- [x] Django: cherry-pick tracing commits (`1a354de`, `d00f673`, `ab2b98f`)
+- [x] auth-engine SDK: cherry-pick `traceData` (`13fdcc8`)
+- [ ] delete `pt-1351-sentry-tracing-metrics` after merge
+- [ ] alpha verified
+- [ ] PR merged
+- [ ] beta deploy green
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/03a-framework-apps/phase.md">
+---
+title: framework apps
+---
+Bump pdk 2.x + the framework minor, drop the std-deps layer and externals, bundle imported deps, use the facade where `sentryDSN` is set. Waits on the canaries.
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/03a-framework-apps/01-t4-coa.md">
+---
+title: t4-coa
+status: todo
+repo: t4-coa
+updated: 2026-11-17T20:54
+---
+Imports `FRAMEWORK_EXTERNALS` in `tsdown.config.ts` and has a dead `luxon` external to delete (0 imports).
+
+- [ ] bump pdk 2.x + framework
+- [ ] drop the std-deps layer (3 lambdas)
+- [ ] drop `FRAMEWORK_EXTERNALS` + dead `luxon`, add imported deps
+- [ ] alpha verified
+- [ ] PR merged
+- [ ] beta deploy green
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/03a-framework-apps/02-t4-developer-dashboard.md">
+---
+title: t4-developer-dashboard
+status: todo
+repo: t4-developer-dashboard
+updated: 2026-11-17T20:54
+---
+Has `sentryDSN` and imports `FRAMEWORK_EXTERNALS` in `scripts/build-sync.ts`.
+
+- [ ] bump pdk 2.x + framework
+- [ ] drop the std-deps layer
+- [ ] drop `FRAMEWORK_EXTERNALS`, add imported deps
+- [ ] facade for Sentry
+- [ ] alpha verified
+- [ ] PR merged
+- [ ] beta deploy green
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/03a-framework-apps/03-t4-user-interactions-api.md">
+---
+title: t4-user-interactions-api
+status: todo
+repo: t4-user-interactions-api
+updated: 2026-11-17T20:54
+---
+Framework app on std-deps, no DSN.
+
+- [ ] bump pdk 2.x + framework
+- [ ] drop the std-deps layer + externals, add imported deps
+- [ ] alpha verified
+- [ ] PR merged
+- [ ] beta deploy green
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/03a-framework-apps/04-t4-capacity-tool.md">
+---
+title: t4-capacity-tool
+status: todo
+repo: t4-capacity-tool
+updated: 2026-11-17T20:54
+---
+Framework app on std-deps, no DSN.
+
+- [ ] bump pdk 2.x + framework
+- [ ] drop the std-deps layer + externals, add imported deps
+- [ ] alpha verified
+- [ ] PR merged
+- [ ] beta deploy green
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/03a-framework-apps/05-t4-data-services-mgmt.md">
+---
+title: t4-data-services-mgmt
+status: todo
+repo: t4-data-services-mgmt
+updated: 2026-11-17T20:54
+---
+Framework app on std-deps with `sentryDSN`.
+
+- [ ] bump pdk 2.x + framework
+- [ ] drop the std-deps layer + externals, add imported deps
+- [ ] facade for Sentry
+- [ ] alpha verified
+- [ ] PR merged
+- [ ] beta deploy green
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/03a-framework-apps/06-t4-directory.md">
+---
+title: t4-directory
+status: todo
+repo: t4-directory
+updated: 2026-11-17T20:54
+---
+Framework app on std-deps, no DSN.
+
+- [ ] bump pdk 2.x + framework
+- [ ] drop the std-deps layer + externals, add imported deps
+- [ ] alpha verified
+- [ ] PR merged
+- [ ] beta deploy green
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/03a-framework-apps/07-t4-midstream-insights.md">
+---
+title: t4-midstream-insights
+status: todo
+repo: t4-midstream-insights
+updated: 2026-11-17T20:54
+---
+Framework app on std-deps, no DSN.
+
+- [ ] bump pdk 2.x + framework
+- [ ] drop the std-deps layer + externals, add imported deps
+- [ ] alpha verified
+- [ ] PR merged
+- [ ] beta deploy green
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/03b-custom-builds/phase.md">
+---
+title: custom builds
+---
+Hand-written externals lists: drop them and the std-deps layer, bundle imported deps, remove `@sentry/*`, adopt the facade.
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/03b-custom-builds/01-t4-projected-date.md">
+---
+title: t4-projected-date
+status: todo
+repo: t4-projected-date
+updated: 2026-11-17T20:54
+---
+A subagent audit found nothing broken today: just dead `jose` / otel externals and two Sentry call sites in `src/config.ts`. No `node_modules` in the zip, so every external has to come from the runtime or a layer.
+
+- [ ] bump pdk 2.x, drop the std-deps layer
+- [ ] `vite.config.ts`: drop the externals list, add imported deps
+- [ ] `src/config.ts:143,155` + test mocks to facade
+- [ ] drop unused powertools `event-handler` / `parameters`
+- [ ] alpha verified
+- [ ] PR merged
+- [ ] beta deploy green
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/03b-custom-builds/02-t4-shared-user-service.md">
+---
+title: t4-shared-user-service
+status: todo
+repo: t4-shared-user-service
+updated: 2026-11-17T20:54
+---
+Has `sentryDSN` and externalizes `@sentry/*` in `vite.config.ts`.
+
+- [ ] bump pdk 2.x
+- [ ] drop `@sentry/*` externals/deps, use facade
+- [ ] alpha verified
+- [ ] PR merged
+- [ ] beta deploy green
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/03b-custom-builds/03-t4-nip-review.md">
+---
+title: t4-nip-review
+status: todo
+repo: t4-nip-review
+updated: 2026-11-17T20:54
+---
+On pdk 1.0.22 with a DSN TODO and `@sentry/*` externals.
+
+- [ ] bump pdk 2.x
+- [ ] drop `@sentry/*` externals/deps, use facade
+- [ ] alpha verified
+- [ ] PR merged
+- [ ] beta deploy green
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/03c-pdk-bump/phase.md">
+---
+title: pdk bump only
+---
+No DSN, no std-deps: bumping removes the official Sentry layer and nothing else.
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/03c-pdk-bump/01-help-desk-auto-triage.md">
+---
+title: help-desk-auto-triage
+status: todo
+repo: help-desk-auto-triage
+updated: 2026-11-17T20:54
+---
+- [ ] bump pdk 2.x
+- [ ] alpha verified
+- [ ] PR merged
+- [ ] beta deploy green
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/03c-pdk-bump/02-t4-user-info.md">
+---
+title: t4-user-info
+status: blocked
+repo: t4-user-info
+blocked_on: is CT-597-lambda merging soon? asked in #platform
+updated: 2026-11-18T16:40
+---
+A pdk bump only on `main`. But branch `CT-597-lambda` uses std-deps + `FRAMEWORK_EXTERNALS`, and if it merges first this repo needs the full 03a treatment instead.
+
+Asked the branch owner in #platform on 11/18. No answer yet.
+
+- [ ] bump pdk 2.x
+- [ ] alpha verified
+- [ ] PR merged
+- [ ] beta deploy green
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/03c-pdk-bump/03-t4-lower-enviroment-refresh.md">
+---
+title: t4-lower-enviroment-refresh
+status: todo
+repo: t4-lower-enviroment-refresh
+updated: 2026-11-17T20:54
+---
+- [ ] bump pdk 2.x
+- [ ] alpha verified
+- [ ] PR merged
+- [ ] beta deploy green
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/04-cleanup/phase.md">
+---
+title: cleanup
+---
+Delete the std-deps layer and its SSM param once every repo is on pdk 2.x.
+</script>
+
+<script type="text/x-driver" data-path="pdk-2-sentry/04-cleanup/01-ssm-alias.md">
+---
+title: delete the std-deps layer + SSM param
+status: todo
+repo: t4-platform-lambda
+updated: 2026-11-17T20:54
+---
+`layer/nodejs` and `/t4/platform/<stage>/platform-framework-std-deps-layer-arn` stay published from `pulumi.ts` only for pdk 1.x consumers. This goes last.
+
+- [ ] alpha verified
+- [ ] PR merged
+- [ ] beta deploy green
+</script>
+
+<script type="text/x-driver" data-path="driver/project.md">
+---
+title: driver
+repo: ~/dev/helvetici/driver
+rex: 01JD9A1K2XWE-coordinator
+started: 2026-11-19
+updated: 2026-11-19T07:39
+---
+A tiny project tracker for agents. Everything is a markdown file under `~/.driver/`; this UI is read-only and the coordinator talks to it over MCP. You're looking at the mockup right now.
+
+## principles
+
+- files are the source of truth. no database.
+- free-form text first, metadata second.
+- keyboard everything.
+</script>
+
+<script type="text/x-driver" data-path="driver/log.md">
+---
+title: log
+---
+## 2026-11-19 07:39
+Second pass on the mockup: headline progress number, recent log, `c` to talk to the coordinator through rex.
+
+## 2026-11-19 07:30
+First mockup is up. Asked you about the keymap in `02.2`.
+</script>
+
+<script type="text/x-driver" data-path="driver/01-file-format/phase.md">
+---
+title: file format
+---
+Settle the on-disk shape before writing any code.
+</script>
+
+<script type="text/x-driver" data-path="driver/01-file-format/01-frontmatter.md">
+---
+title: frontmatter fields
+status: done
+updated: 2026-11-19T06:10
+---
+Kept it small. Everything else goes in the body.
+
+- `title` — required
+- `status` — `todo` · `doing` · `needs-you` · `blocked` · `done` · `skipped`
+- `ask` — one line, only when `needs-you`
+- `blocked_on` — one line, free text
+- `blocked_by` — a task id like `03.1`, optional
+- `repo`, `pr`, `updated` — optional
+
+Step progress (`2/5`) isn't a field: it's counted from the `- [ ]` / `- [x]` lines in the body.
+</script>
+
+<script type="text/x-driver" data-path="driver/01-file-format/02-layout.md">
+---
+title: directory layout
+status: done
+updated: 2026-11-19T06:25
+---
+~~~
+~/.driver/
+  pdk-2-sentry/
+    project.md      # the agent's summary, decisions
+    log.md          # append-only, newest first
+    03a-framework-apps/
+      phase.md
+      01-t4-coa.md
+~~~
+
+Ordering comes from the prefix. Ids like `03a.1` come from the path. Nothing to keep in sync.
+</script>
+
+<script type="text/x-driver" data-path="driver/02-mockup/phase.md">
+---
+title: mockup
+---
+A standalone HTML file to iterate on the look and the keymap before building anything real.
+</script>
+
+<script type="text/x-driver" data-path="driver/02-mockup/01-html-mockup.md">
+---
+title: standalone html mockup
+status: doing
+updated: 2026-11-19T07:39
+---
+Single file, no build. Embeds a fake `~/.driver` as script tags and parses the frontmatter at load, so the mock reads files the same way the real thing will.
+
+- [x] first pass
+- [x] headline number instead of the status strip
+- [x] real project as the example (pdk-2-sentry)
+- [ ] keymap sign-off
+
+## verification
+
+~~~sh
+open mockups/driver.html
+# → press ? for the keymap
+~~~
+</script>
+
+<script type="text/x-driver" data-path="driver/02-mockup/02-keymap.md">
+---
+title: keymap
+status: needs-you
+ask: does J / K for switching projects feel right?
+updated: 2026-11-19T07:30
+---
+Vim-ish. `j` / `k` move, `enter` opens the reader, `J` / `K` switch projects, `⌘K` for everything else.
+
+## open question
+
+`J` / `K` is fast but easy to fat-finger while moving. The alternative is `[` / `]`, but `[` is currently "toggle sidebar". Press `?` to see the whole map and tell me what feels off.
+</script>
+
+<script type="text/x-driver" data-path="driver/03-mcp/phase.md">
+---
+title: mcp server
+---
+Read-only MCP server for the coordinator agent. Same files, same parser as the UI.
+</script>
+
+<script type="text/x-driver" data-path="driver/03-mcp/01-read-tools.md">
+---
+title: read tools
+status: todo
+updated: 2026-11-19T06:00
+---
+- [ ] `list_projects()`
+- [ ] `get_project(slug)` → project.md + phase summaries
+- [ ] `get_task(slug, id)` → the raw file
+- [ ] `needs_me()` → every `needs-you` and `blocked` task, across projects
+</script>
+
+<script type="text/x-driver" data-path="driver/03-mcp/02-fs-watch.md">
+---
+title: watch the filesystem
+status: todo
+updated: 2026-11-19T06:00
+---
+Push updates to the UI when an agent writes a file. `fs.watch` on `~/.driver`, debounced 100ms.
+</script>
+
+<script type="text/x-driver" data-path="billing-ledger-v2/project.md">
+---
+title: billing-ledger-v2
+repo: ~/dev/t4/billing
+rex: 01JD2M7T0QHC-coordinator
+started: 2026-11-02
+updated: 2026-11-19T06:58
+---
+Replacing the hand-rolled invoice ledger with a real double-entry model. Schema is merged; the backfill (`02.2`) is written, tested, and **waiting on your review**.
+
+Cutover is blocked on prod read-replica access — I drafted the infra ask in `03.2`. Nothing is on fire.
+</script>
+
+<script type="text/x-driver" data-path="billing-ledger-v2/01-discovery/phase.md">
+---
+title: discovery
+---
+Mapped every writer to `invoices` and `invoice_lines`. There are seven, not four.
+</script>
+
+<script type="text/x-driver" data-path="billing-ledger-v2/01-discovery/01-map-writers.md">
+---
+title: map every writer to the invoice tables
+status: done
+updated: 2026-11-04T16:20
+---
+Seven writers, including an undocumented admin endpoint support uses ~3×/week.
+</script>
+
+<script type="text/x-driver" data-path="billing-ledger-v2/02-schema/phase.md">
+---
+title: schema & migrations
+---
+Three PRs, landed in order. Each one has to be deployable on its own.
+</script>
+
+<script type="text/x-driver" data-path="billing-ledger-v2/02-schema/01-pr-ledger-tables.md">
+---
+title: PR 1 — ledger tables + constraints
+status: done
+pr: "#408"
+updated: 2026-11-17T10:12
+---
+Merged and deployed. Tables are empty, and that's correct.
+</script>
+
+<script type="text/x-driver" data-path="billing-ledger-v2/02-schema/02-pr-backfill.md">
+---
+title: PR 2 — backfill historical invoices
+status: needs-you
+pr: "#412"
+ask: review #412, then run the staging dry-run (3 commands)
+updated: 2026-11-18T17:26
+---
+Backfills `ledger_entries` from 14 months of `invoice_lines`. Idempotent — keyed on `(invoice_id, line_no)`.
+
+## verification
+
+~~~sh
+bun scripts/backfill-dry-run.ts --env staging --since 2025-09-01
+# → 182,334 lines · 0 mismatches · 3 skipped
+~~~
+
+- [x] dry run clean against a local copy of staging
+- [ ] **you:** review #412
+</script>
+
+<script type="text/x-driver" data-path="billing-ledger-v2/03-cutover/phase.md">
+---
+title: cutover
+---
+Reads flip per-tenant behind `ledger_v2_reads`. Rollback is flipping the flag back.
+</script>
+
+<script type="text/x-driver" data-path="billing-ledger-v2/03-cutover/01-reconcile-job.md">
+---
+title: nightly reconcile job
+status: blocked
+blocked_on: prod read-replica creds — INFRA-2291
+updated: 2026-11-18T15:40
+---
+The job is written. It just can't connect.
+</script>
+
+<script type="text/x-driver" data-path="billing-ledger-v2/03-cutover/02-read-flag.md">
+---
+title: per-tenant read flag
+status: todo
+blocked_by: "03.1"
+updated: 2026-11-12T09:00
+---
+Not starting until the reconcile job has been green for 3 nights.
+</script>
+
+<script type="text/x-driver" data-path="onboarding-docs/project.md">
+---
+title: onboarding-docs
+repo: ~/dev/t4/handbook
+started: 2026-11-06
+updated: 2026-11-14T10:00
+---
+Rewriting the new-engineer onboarding docs. Outline is approved; drafts haven't started. Parked until the billing cutover is done.
+</script>
+
+<script type="text/x-driver" data-path="onboarding-docs/01-outline/phase.md">
+---
+title: outline
+---
+What a new engineer needs in week one, and nothing else.
+</script>
+
+<script type="text/x-driver" data-path="onboarding-docs/01-outline/01-outline.md">
+---
+title: outline the week-one path
+status: done
+updated: 2026-11-08T12:00
+---
+Day 1: laptop + local dev. Day 2: ship a typo fix. Day 3–5: one real ticket with a buddy.
+</script>
+
+<script type="text/x-driver" data-path="onboarding-docs/02-drafts/phase.md">
+---
+title: drafts
+---
+One doc per day of week one.
+</script>
+
+<script type="text/x-driver" data-path="onboarding-docs/02-drafts/01-local-dev.md">
+---
+title: local dev setup
+status: todo
+updated: 2026-11-14T10:00
+---
+Should be one command. Currently it's eleven.
+</script>
+
+<script type="text/x-driver" data-path="onboarding-docs/02-drafts/02-first-deploy.md">
+---
+title: your first deploy
+status: todo
+updated: 2026-11-14T10:00
+---
+Walk through a typo fix from branch to prod.
+</script>
+
+<script>
+const ROOT = "~/.driver";
+const NOW = new Date("2026-11-19T07:40:00");
+
+const STATUS = {
+  "needs-you": { glyph: "◆", label: "needs you" },
+  blocked: { glyph: "✕", label: "blocked" },
+  doing: { glyph: "◐", label: "doing" },
+  todo: { glyph: "○", label: "todo" },
+  done: { glyph: "●", label: "done" },
+  skipped: { glyph: "–", label: "skipped" },
+};
+const FINISHED = new Set(["done", "skipped"]);
+const SPIN = ["◐", "◓", "◑", "◒"];
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+function ago(iso) {
+  const m = Math.round((NOW - new Date(iso)) / 60000);
+  if (m < 1) return "now";
+  if (m < 60) return `${m}m`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h`;
+  return `${Math.round(h / 24)}d`;
+}
+
+/* ───────────── the "filesystem" ───────────── */
+
+function parseFile(raw) {
+  const m = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  if (!m) return { fm: {}, body: raw.trim() };
+  const fm = {};
+  for (const line of m[1].split("\n")) {
+    const kv = line.match(/^([\w-]+):\s*(.*)$/);
+    if (kv) fm[kv[1]] = kv[2].replace(/^"(.*)"$/, "$1");
+  }
+  return { fm, body: m[2].trim() };
+}
+
+const files = {};
+for (const s of document.querySelectorAll('script[type="text/x-driver"]')) {
+  const raw = s.textContent.replace(/^\n/, "").replace(/\s+$/, "") + "\n";
+  files[s.dataset.path] = { path: s.dataset.path, raw, ...parseFile(raw) };
+}
+
+function parseLog(body) {
+  return body
+    .split(/^## /m)
+    .filter((e) => e.trim())
+    .map((e) => {
+      const [head, ...rest] = e.split("\n");
+      return { at: head.trim().replace(" ", "T"), text: rest.join(" ").trim() };
+    });
+}
+
+const projects = [];
+const paths = Object.keys(files).sort();
+for (const path of paths) {
+  const [slug, name] = path.split("/");
+  if (name !== "project.md") continue;
+  const f = files[path];
+  const log = files[`${slug}/log.md`];
+  projects.push({ slug, file: path, fm: f.fm, body: f.body, phases: [], tasks: [], log: log && { file: log.path, entries: parseLog(log.body) } });
+}
+for (const path of paths) {
+  const [slug, dir, name] = path.split("/");
+  if (!name) continue;
+  const p = projects.find((x) => x.slug === slug);
+  const num = dir.split("-")[0];
+  let ph = p.phases.find((x) => x.dir === dir);
+  if (!ph) {
+    ph = { dir, num, key: `phase:${num}`, file: `${slug}/${dir}/phase.md`, tasks: [], project: p };
+    p.phases.push(ph);
+  }
+  const f = files[path];
+  if (name === "phase.md") {
+    ph.title = f.fm.title;
+    ph.body = f.body;
+    continue;
+  }
+  const t = { id: `${num}.${+name.split("-")[0]}`, file: path, fm: f.fm, body: f.body, phase: ph, project: p, ...f.fm };
+  ph.tasks.push(t);
+  p.tasks.push(t);
+}
+projects.sort((a, b) => b.fm.updated.localeCompare(a.fm.updated));
+
+const count = (p, st) => p.tasks.filter((t) => t.status === st).length;
+const allTasks = () => projects.flatMap((p) => p.tasks);
+
+function progress(tasks) {
+  const done = tasks.filter((t) => t.status === "done").length;
+  const skipped = tasks.filter((t) => t.status === "skipped").length;
+  const total = tasks.length - skipped;
+  return { done, skipped, total, pct: total ? Math.round((done / total) * 100) : 100 };
+}
+
+function steps(t) {
+  const boxes = t.body.match(/^\s*[-*] \[[ xX]\]/gm) ?? [];
+  const ticked = boxes.filter((b) => /x/i.test(b)).length;
+  return boxes.length ? `${ticked}/${boxes.length}` : "";
+}
+
+/* ───────────── markdown (just enough) ───────────── */
+
+function inline(s) {
+  const codes = [];
+  s = esc(s).replace(/`([^`]+)`/g, (_, c) => `\u0000${codes.push(c) - 1}\u0000`);
+  s = s
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[^*\w])\*(?!\s)(.+?)\*(?!\w)/g, "$1<em>$2</em>")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+    .replace(/(^|[\s(])#(\d{2,5})\b/g, '$1<span class="ref">#$2</span>');
+  return s.replace(/\u0000(\d+)\u0000/g, (_, n) => `<code>${codes[n]}</code>`);
+}
+
+function codeBlock(src, lang) {
+  let cont = false;
+  const body = src
+    .split("\n")
+    .map((l) => {
+      const e = esc(l);
+      const prompt = lang === "sh" && l.trim() && !cont;
+      cont = l.trimEnd().endsWith("\\");
+      if (/^\s*(#|--|\/\/)/.test(l)) return `<span class="${l.includes("→") ? "o" : "c"}">${e}</span>`;
+      return prompt ? `<span class="ps">$ </span>${e}` : e;
+    })
+    .join("\n");
+  return `<pre>${lang ? `<span class="lang">${esc(lang)}</span>` : ""}<code>${body}</code></pre>`;
+}
+
+const LIST = /^\s*([-*]|\d+\.)\s+/;
+function md(src) {
+  const lines = src.split("\n");
+  const para = [];
+  let out = "";
+  let i = 0;
+  const flush = () => {
+    if (para.length) out += `<p>${inline(para.join(" "))}</p>`;
+    para.length = 0;
+  };
+  while (i < lines.length) {
+    const l = lines[i];
+    let m;
+    if ((m = l.match(/^(```|~~~)\s*(\S*)/))) {
+      flush();
+      const buf = [];
+      i++;
+      while (i < lines.length && !lines[i].startsWith(m[1])) buf.push(lines[i++]);
+      i++;
+      out += codeBlock(buf.join("\n"), m[2]);
+    } else if ((m = l.match(/^(#{1,4})\s+(.*)/))) {
+      flush();
+      const n = Math.min(m[1].length + 1, 4);
+      out += `<h${n}><span class="hash">${m[1]}</span> ${inline(m[2])}</h${n}>`;
+      i++;
+    } else if (/^\s*(-{3,}|\*{3,})\s*$/.test(l)) {
+      flush();
+      out += "<hr>";
+      i++;
+    } else if (/^>/.test(l)) {
+      flush();
+      const buf = [];
+      while (i < lines.length && /^>/.test(lines[i])) buf.push(lines[i++].replace(/^>\s?/, ""));
+      out += `<blockquote>${md(buf.join("\n"))}</blockquote>`;
+    } else if (LIST.test(l)) {
+      flush();
+      const ordered = /^\s*\d+\./.test(l);
+      const items = [];
+      while (i < lines.length && LIST.test(lines[i])) {
+        items.push(lines[i++].replace(LIST, ""));
+        while (i < lines.length && /^\s{2,}\S/.test(lines[i]) && !LIST.test(lines[i])) items[items.length - 1] += " " + lines[i++].trim();
+      }
+      const lis = items.map((it) => {
+        const t = it.match(/^\[([ xX])\]\s+(.*)/);
+        if (!t) return `<li>${inline(it)}</li>`;
+        const on = t[1] !== " ";
+        return `<li class="task ${on ? "on" : ""}"><span class="box">[${on ? "x" : " "}]</span><span class="txt">${inline(t[2])}</span></li>`;
+      });
+      out += ordered ? `<ol>${lis.join("")}</ol>` : `<ul>${lis.join("")}</ul>`;
+    } else if (!l.trim()) {
+      flush();
+      i++;
+    } else {
+      para.push(l.trim());
+      i++;
+    }
+  }
+  flush();
+  return out;
+}
+
+function rawView(raw) {
+  let inFm = false;
+  let fences = 0;
+  return raw
+    .replace(/\n$/, "")
+    .split("\n")
+    .map((l, i) => {
+      if (l === "---" && (i === 0 || inFm)) {
+        inFm = i === 0;
+        return `<span class="d">---</span>`;
+      }
+      if (inFm) {
+        const kv = l.match(/^([\w-]+):(.*)$/);
+        return kv ? `<span class="k">${esc(kv[1])}</span><span class="d">:</span>${esc(kv[2])}` : esc(l);
+      }
+      if (/^(```|~~~)/.test(l)) fences++;
+      if (fences % 2 === 0 && /^#{1,4}\s/.test(l)) return `<span class="h">${esc(l)}</span>`;
+      return esc(l);
+    })
+    .join("\n");
+}
+
+/* ───────────── state ───────────── */
+
+const S = {
+  p: Math.max(0, projects.findIndex((p) => p.slug === "pdk-2-sentry")),
+  cursor: null,
+  cursors: {},
+  reader: false,
+  zone: "list",
+  raw: false,
+  filter: "",
+  filtering: false,
+  collapsed: new Set(),
+  palSel: 0,
+  palette: false,
+  help: false,
+  sidebar: true,
+};
+for (const p of projects) for (const ph of p.phases) if (ph.tasks.every((t) => FINISHED.has(t.status))) S.collapsed.add(`${p.slug}/${ph.key}`);
+
+const P = () => projects[S.p];
+let nav = [];
+const curEl = () => nav.find((e) => e.dataset.nav === S.cursor);
+
+/* ───────────── rendering ───────────── */
+
+function renderSidebar() {
+  const items = projects
+    .map((p, i) => {
+      const n = count(p, "needs-you");
+      const b = count(p, "blocked");
+      return `<div class="proj ${i === S.p ? "active" : ""}" data-proj="${i}">
+        <div class="pname"><span class="pidx">${i + 1}</span><span class="pslug">${esc(p.slug)}</span><span class="ppct">${progress(p.tasks).pct}%</span></div>
+        <div class="pmeta"><span>updated ${ago(p.fm.updated)} ago</span><span class="badges">
+          ${n ? `<span class="glyph st-needs-you">◆ ${n}</span>` : ""}
+          ${b ? `<span class="glyph st-blocked">✕ ${b}</span>` : ""}
+        </span></div>
+      </div>`;
+    })
+    .join("");
+  $("#sidebar").innerHTML = `
+    <div class="brand"><span class="mark">▚</span>driver</div>
+    <div class="side-label">projects</div>
+    ${items}
+    <div class="side-foot">
+      <span class="where">${ROOT} · ${Object.keys(files).length} files</span>
+      <span><kbd>⌘K</kbd></span><span>palette</span>
+      <span><kbd>c</kbd></span><span>talk to coordinator</span>
+      <span><kbd>?</kbd></span><span>all keys</span>
+    </div>`;
+  for (const el of document.querySelectorAll("[data-proj]")) el.onclick = () => selectProject(+el.dataset.proj);
+}
+
+function taskRow(t, prefix = "task") {
+  return `<div class="row st-${t.status}" data-nav="${prefix}:${t.id}" data-file="${t.file}">
+    <span class="caret">▸</span>
+    <span class="glyph">${STATUS[t.status].glyph}</span>
+    <span class="tid">${t.id}</span>
+    <span class="ttl">${esc(t.title)}</span>
+    <span class="pr">${esc(t.pr ?? "")}</span>
+    <span class="steps">${steps(t)}</span>
+    <span class="age">${ago(t.updated)}</span>
+  </div>`;
+}
+
+function attnRow(t) {
+  const why = t.status === "needs-you" ? t.ask : t.blocked_on;
+  return `<div class="row st-${t.status}" data-nav="att:${t.id}" data-file="${t.file}">
+    <span class="caret">▸</span>
+    <span class="glyph">${STATUS[t.status].glyph}</span>
+    <div style="min-width:0">
+      <div class="ttl"><span class="tid" style="color:var(--muted);margin-right:1ch">${t.id}</span>${esc(t.title)}</div>
+      <div class="why"><span class="arr">→</span> ${inline(why ?? "")}</div>
+    </div>
+    <span class="where">${t.phase.num} · ${esc(t.phase.title)}</span>
+    <span class="age">${ago(t.updated)}</span>
+  </div>`;
+}
+
+function matches(t) {
+  const q = S.filter.toLowerCase();
+  return !q || `${t.id} ${t.title} ${t.status} ${t.repo ?? ""} ${t.body} ${t.ask ?? ""} ${t.blocked_on ?? ""}`.toLowerCase().includes(q);
+}
+
+function headline(p) {
+  const pr = progress(p.tasks);
+  const now = p.phases.find((ph) => ph.tasks.some((t) => !FINISHED.has(t.status)));
+  return `<div class="headline">
+      <span class="pct">${pr.pct}<small>%</small></span>
+      <span class="of"><b>${pr.done}</b> of <b>${pr.total}</b> tasks done${pr.skipped ? ` <span class="sk">· ${pr.skipped} skipped</span>` : ""}</span>
+      ${now ? `<span class="now">now in <b>${now.num} · ${esc(now.title)}</b></span>` : `<span class="now">all phases done</span>`}
+    </div>
+    <div class="progress"><i style="width:${pr.pct}%"></i></div>`;
+}
+
+function recent(p) {
+  if (!p.log || S.filter) return "";
+  const rows = p.log.entries
+    .slice(0, 3)
+    .map((e) => `<div class="log-row"><span class="t">${ago(e.at)}</span><span class="m">${inline(e.text)}</span></div>`)
+    .join("");
+  return `<div class="label">recent <span class="aside">log.md · ${p.log.entries.length} entries</span></div>
+    <div class="recent" data-nav="log" data-file="${p.log.file}">${rows}</div>`;
+}
+
+function renderMain() {
+  const p = P();
+  const needs = p.tasks.filter((t) => t.status === "needs-you" && matches(t));
+  const blocked = p.tasks.filter((t) => t.status === "blocked" && matches(t));
+  const [brief] = p.body.split(/^## /m);
+
+  const phases = p.phases
+    .map((ph) => {
+      const shown = ph.tasks.filter(matches);
+      if (S.filter && !shown.length) return "";
+      const pr = progress(ph.tasks);
+      const allDone = ph.tasks.every((t) => FINISHED.has(t.status));
+      const closed = !S.filter && S.collapsed.has(`${p.slug}/${ph.key}`);
+      const note = ph.body.split("\n")[0];
+      return `<div class="phase ${allDone ? "all-done" : ""}">
+        <div class="phase-head" data-nav="${ph.key}" data-file="${ph.file}">
+          <span class="caret">▸</span>
+          <span class="fold">${closed ? "▸" : "▾"}</span>
+          <span class="pnum">${ph.num}</span>
+          <span class="ptitle">${esc(ph.title)}</span>
+          <span class="pbar">${ph.tasks.map((t) => `<i class="st-${t.status}"></i>`).join("")}</span>
+          <span class="pcount">${allDone ? `<span style="color:var(--sage)">✓</span> ` : ""}${pr.done}/${pr.total}</span>
+        </div>
+        <div class="phase-note">${inline(note)}</div>
+        ${closed ? "" : `<div class="tasks">${shown.map((t) => taskRow(t)).join("")}</div>`}
+      </div>`;
+    })
+    .join("");
+
+  const attn =
+    needs.length || blocked.length
+      ? `${needs.length ? `<div class="label st-needs-you">needs you <span class="n">◆ ${needs.length}</span></div><div class="attn-card">${needs.map(attnRow).join("")}</div>` : ""}
+         ${blocked.length ? `<div class="label st-blocked">blocked <span class="n">✕ ${blocked.length}</span></div><div class="attn-card blocked">${blocked.map(attnRow).join("")}</div>` : ""}`
+      : S.filter
+        ? ""
+        : `<div class="label">needs you</div><div class="calm"><span class="sun">☼</span> nothing needs you here.</div>`;
+
+  $("#scroll").innerHTML = `<div class="page">
+    <header class="proj-head" data-nav="project" data-file="${p.file}">
+      <div class="crumb">${ROOT}/<b>${esc(p.slug)}</b>/project.md</div>
+      <h1 class="title">${esc(p.slug)}</h1>
+      <div class="brief">${md(brief)}</div>
+      <div class="byline">updated ${ago(p.fm.updated)} ago · ${esc(p.fm.repo)}</div>
+    </header>
+
+    ${headline(p)}
+    ${attn}
+    ${recent(p)}
+
+    <div class="label">phases</div>
+    ${phases || `<div class="calm">no tasks match <b>/${esc(S.filter)}</b></div>`}
+
+    <div class="endmark">~ eof · ${Object.keys(files).filter((f) => f.startsWith(p.slug + "/")).length} files under ${ROOT}/${esc(p.slug)} ~</div>
+  </div>`;
+
+  $("#filtercount").textContent = S.filter ? `${p.tasks.filter(matches).length} of ${p.tasks.length}` : "";
+  nav = [...$("#scroll").querySelectorAll("[data-nav]")];
+  for (const el of nav) {
+    el.onclick = () => setCursor(el.dataset.nav);
+    el.ondblclick = () => openReader();
+  }
+  if (!curEl()) S.cursor = (nav.find((e) => e.dataset.nav.startsWith("att:")) ?? nav[0])?.dataset.nav;
+  paintCursor();
+}
+
+function fmRows(fm) {
+  const rows = Object.entries(fm)
+    .filter(([k]) => k !== "title")
+    .map(([k, v]) => {
+      let val = esc(v);
+      if (k === "status") val = `<span class="st-${v}"><span class="glyph">${STATUS[v].glyph}</span> ${esc(v)}</span>`;
+      if (k === "updated") val = `${esc(v)} <span style="color:var(--faint)">· ${ago(v)} ago</span>`;
+      if (k === "rex") val = `${esc(v)}<span class="jump"><kbd>c</kbd> talk</span>`;
+      if (k === "blocked_by") val = `<span style="color:var(--accent)">${esc(v)}</span><span class="jump"><kbd>b</kbd> jump</span>`;
+      if (k === "pr") val = `<span style="color:var(--accent)">${esc(v)}</span>`;
+      return `<div class="fm-row"><span class="k">${esc(k)}</span><span class="v">${val}</span></div>`;
+    });
+  return `<div class="fm"><div class="fm-rule">---</div>${rows.join("")}<div class="fm-rule">---</div></div>`;
+}
+
+function renderReader() {
+  const el = $("#reader");
+  el.classList.toggle("focused", S.zone === "reader");
+  if (!S.reader) return;
+  const c = curEl();
+  if (!c) return;
+  const f = files[c.dataset.file];
+  const p = P();
+  const [, dir, name] = f.path.split("/");
+  const ph = p.phases.find((x) => x.dir === dir);
+  const task = p.tasks.find((t) => t.file === f.path);
+
+  let ctx = `<span>${esc(p.slug)}</span>`;
+  if (ph) ctx += `<span class="sep">›</span><span>${ph.num} ${esc(ph.title)}</span>`;
+  if (task) ctx += `<span class="sep">›</span><span>${task.id}</span>`;
+
+  const title = name === "phase.md" ? ph.title : f.fm.title;
+  const extra = name === "phase.md" ? `<div class="label">tasks in this phase</div><div class="subtasks">${ph.tasks.map((t) => taskRow(t, "sub")).join("")}</div>` : "";
+
+  const body = S.raw
+    ? `<pre class="raw">${rawView(f.raw)}</pre>`
+    : `${fmRows(f.fm)}<div class="r-ctx">${ctx}</div><h2 class="r-title">${esc(title)}</h2><article class="md">${md(f.body)}</article>${extra}`;
+
+  const prevScroll = el.dataset.file === f.path ? ($("#reader-body")?.scrollTop ?? 0) : 0;
+  el.dataset.file = f.path;
+  el.innerHTML = `
+    <div class="reader-head">
+      <span class="rpath">${ROOT}/${esc(f.path.split("/").slice(0, -1).join("/"))}/<b>${esc(f.path.split("/").pop())}</b></span>
+      <span class="rkeys"><kbd>r</kbd> ${S.raw ? "rendered" : "raw"} <kbd>c</kbd> coordinator <kbd>o</kbd> nvim</span>
+    </div>
+    <div class="reader-body" id="reader-body">${body}</div>`;
+  $("#reader-body").scrollTop = prevScroll;
+  spin();
+}
+
+function renderStatus() {
+  const mode = S.palette ? "PALETTE" : S.help ? "KEYS" : S.filtering ? "FILTER" : S.zone === "reader" ? "READER" : "NORMAL";
+  const c = curEl();
+  const parts = (c ? c.dataset.file : P().file).split("/");
+  const idx = c ? nav.indexOf(c) + 1 : 0;
+  const across = (st) => allTasks().filter((t) => t.status === st).length;
+  $("#status").innerHTML = `
+    <span class="mode ${mode}">${mode}</span>
+    <span class="sl-path">${ROOT}/${esc(parts.slice(0, -1).join("/"))}/<b>${esc(parts.at(-1))}</b>${S.filter && !S.filtering ? `  <span style="color:var(--amber)">/${esc(S.filter)}</span>` : ""}</span>
+    <span class="seg st-needs-you"><span class="g">◆</span>${across("needs-you")} need you</span>
+    <span class="seg st-blocked"><span class="g">✕</span>${across("blocked")} blocked</span>
+    <span class="seg">${idx}/${nav.length}</span>
+    <span class="seg">read-only</span>
+    <span class="seg">${new Date().toTimeString().slice(0, 5)}</span>`;
+}
+
+function renderAll() {
+  $("#app").classList.toggle("reader-open", S.reader);
+  $("#app").classList.toggle("no-sidebar", !S.sidebar);
+  renderSidebar();
+  renderMain();
+}
+
+function spin() {
+  const frame = SPIN[Math.floor(Date.now() / 220) % SPIN.length];
+  for (const g of document.querySelectorAll(".st-doing .glyph, .glyph.st-doing")) g.textContent = frame;
+}
+setInterval(spin, 220);
+setInterval(renderStatus, 30000);
+
+/* ───────────── actions ───────────── */
+
+function paintCursor(scroll = true) {
+  for (const el of nav) el.classList.toggle("cur", el.dataset.nav === S.cursor);
+  const c = curEl();
+  if (c && scroll) c.scrollIntoView({ block: "nearest" });
+  renderReader();
+  renderStatus();
+}
+
+function setCursor(key) {
+  S.cursor = key;
+  paintCursor();
+}
+
+function move(d) {
+  if (!nav.length) return;
+  const i = nav.indexOf(curEl());
+  const j = Math.max(0, Math.min(nav.length - 1, i + d));
+  setCursor(nav[j].dataset.nav);
+}
+
+function selectProject(i) {
+  if (i < 0 || i >= projects.length) return;
+  S.cursors[S.p] = S.cursor;
+  S.p = i;
+  S.cursor = S.cursors[i] ?? null;
+  S.filter = "";
+  $("#filter").value = "";
+  $("#filterbar").classList.remove("on");
+  renderAll();
+  $("#scroll").scrollTop = 0;
+}
+
+function openReader() {
+  S.reader = true;
+  $("#app").classList.add("reader-open");
+  paintCursor();
+}
+
+function closeReader() {
+  S.reader = false;
+  S.zone = "list";
+  $("#app").classList.remove("reader-open");
+  renderReader();
+  renderStatus();
+}
+
+function revealTask(p, id) {
+  const t = p.tasks.find((x) => x.id === id);
+  if (!t) return;
+  S.collapsed.delete(`${p.slug}/${t.phase.key}`);
+  renderMain();
+  setCursor(`task:${id}`);
+}
+
+function toggleFold() {
+  const c = curEl();
+  if (!c) return;
+  const key = c.dataset.nav.startsWith("phase:") ? c.dataset.nav : P().tasks.find((t) => `task:${t.id}` === c.dataset.nav)?.phase.key;
+  if (!key) return;
+  const k = `${P().slug}/${key}`;
+  S.collapsed.has(k) ? S.collapsed.delete(k) : S.collapsed.add(k);
+  S.cursor = key;
+  renderMain();
+}
+
+let toastTimer;
+function toast(msg, cmd) {
+  const t = $("#toast");
+  t.innerHTML = msg + (cmd ? `<span class="cmd">${esc(cmd)}</span>` : "");
+  t.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("on"), 2600);
+}
+
+function currentPath() {
+  return `${ROOT}/${curEl()?.dataset.file ?? P().file}`;
+}
+
+function currentRef() {
+  const t = P().tasks.find((x) => S.cursor?.endsWith(`:${x.id}`));
+  const ph = P().phases.find((x) => x.key === S.cursor);
+  return t ? `${t.id} (${t.title})` : ph ? `phase ${ph.num} (${ph.title})` : "the project";
+}
+
+function talkToCoordinator() {
+  const p = P();
+  if (!p.fm.rex) return toast(`no coordinator session recorded for <b>${esc(p.slug)}</b>`);
+  const text = `re ${currentRef()}: `;
+  toast(`typed <b>${esc(text)}</b>into the coordinator · switched to rex`, `rex send -s ${p.fm.rex} '${text}' && rex -C mac do session.select session_id=${p.fm.rex}`);
+}
+
+function openInEditor() {
+  const p = P();
+  if (!p.fm.rex) return toast(`no coordinator session recorded for <b>${esc(p.slug)}</b>`);
+  toast(`opened read-only in a split beside the coordinator`, `rex split -s ${p.fm.rex} --split=right --ratio 40 -- nvim -R ${currentPath()}`);
+}
+
+function setTheme(t) {
+  document.documentElement.dataset.theme = t;
+  localStorage.setItem("driver-theme", t);
+}
+setTheme(localStorage.getItem("driver-theme") ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "cocoa" : "paper"));
+
+/* ───────────── palette ───────────── */
+
+function fuzzy(q, s) {
+  const lo = s.toLowerCase();
+  const idx = [];
+  let score = 0;
+  let last = -2;
+  let qi = 0;
+  for (let i = 0; i < lo.length && qi < q.length; i++) {
+    if (lo[i] !== q[qi]) continue;
+    score += i === last + 1 ? 3 : 1;
+    if (i === 0 || " -/._·".includes(lo[i - 1])) score += 2;
+    idx.push(i);
+    last = i;
+    qi++;
+  }
+  return qi === q.length ? { score: score - s.length * 0.02, idx } : null;
+}
+
+function hl(s, idx) {
+  const set = new Set(idx);
+  return [...s].map((ch, i) => (set.has(i) ? `<mark>${esc(ch)}</mark>` : esc(ch))).join("");
+}
+
+function paletteSources() {
+  const items = [];
+  for (const t of allTasks().filter((t) => t.status === "needs-you"))
+    items.push({ group: "needs you", st: t.status, label: t.title, sub: `${t.project.slug} · ${t.id}`, run: () => jumpTo(t) });
+  projects.forEach((p, i) =>
+    items.push({ group: "projects", glyph: `${i + 1}`, label: p.slug, sub: `${progress(p.tasks).pct}% · updated ${ago(p.fm.updated)} ago`, run: () => selectProject(i) }),
+  );
+  for (const t of allTasks().filter((t) => t.status !== "needs-you"))
+    items.push({ group: "tasks", st: t.status, label: t.title, sub: `${t.project.slug} · ${t.id}`, run: () => jumpTo(t), searchOnly: true });
+  const cmds = [
+    ["talk to the coordinator", "c", () => talkToCoordinator()],
+    ["toggle theme", "t", () => setTheme(document.documentElement.dataset.theme === "paper" ? "cocoa" : "paper")],
+    ["toggle sidebar", "[", () => { S.sidebar = !S.sidebar; renderAll(); }],
+    ["open project.md", "p", () => { setCursor("project"); openReader(); }],
+    ["open log.md", "L", () => { setCursor("log"); openReader(); }],
+    ["filter tasks", "/", () => startFilter()],
+    ["copy path", "y", () => copyPath()],
+    ["show all keys", "?", () => openHelp()],
+  ];
+  for (const [label, key, run] of cmds) items.push({ group: "commands", glyph: "›", label, sub: key, run });
+  return items;
+}
+
+let palItems = [];
+function renderPalette() {
+  const q = $("#pal-q").value.trim().toLowerCase();
+  palItems = paletteSources()
+    .map((it) => {
+      if (!q) return it.searchOnly ? null : { ...it, m: { score: 0, idx: [] } };
+      const m = fuzzy(q, it.label) ?? (fuzzy(q, it.sub) && { score: -5, idx: [] });
+      return m && { ...it, m };
+    })
+    .filter(Boolean);
+  if (q) palItems.sort((a, b) => b.m.score - a.m.score);
+  S.palSel = Math.min(S.palSel, Math.max(0, palItems.length - 1));
+
+  let html = "";
+  let group = null;
+  palItems.forEach((it, i) => {
+    if (!q && it.group !== group) html += `<div class="pal-group">${(group = it.group)}</div>`;
+    const gl = it.st ? `<span class="gl st-${it.st}"><span class="glyph">${STATUS[it.st].glyph}</span></span>` : `<span class="gl">${it.glyph}</span>`;
+    html += `<div class="pal-item ${i === S.palSel ? "sel" : ""}" data-i="${i}">${gl}<span class="pl">${hl(it.label, it.m.idx)}</span><span class="ps">${esc(it.sub)}</span></div>`;
+  });
+  $("#pal-list").innerHTML = html || `<div class="pal-empty">nothing matches. it's not in a file anywhere.</div>`;
+  $("#pal-list .sel")?.scrollIntoView({ block: "nearest" });
+  for (const el of document.querySelectorAll(".pal-item")) el.onclick = () => runPalette(+el.dataset.i);
+  spin();
+}
+
+function openPalette() {
+  S.palette = true;
+  S.palSel = 0;
+  $("#pal-q").value = "";
+  $("#palette-scrim").classList.add("on");
+  renderPalette();
+  $("#pal-q").focus();
+  renderStatus();
+}
+
+function closePalette() {
+  S.palette = false;
+  $("#palette-scrim").classList.remove("on");
+  $("#pal-q").blur();
+  renderStatus();
+}
+
+function runPalette(i) {
+  const it = palItems[i];
+  closePalette();
+  it?.run();
+}
+
+function jumpTo(t) {
+  selectProject(projects.indexOf(t.project));
+  revealTask(t.project, t.id);
+  openReader();
+}
+
+$("#pal-q").addEventListener("input", () => {
+  S.palSel = 0;
+  renderPalette();
+});
+$("#palette-scrim").addEventListener("mousedown", (e) => e.target.id === "palette-scrim" && closePalette());
+
+/* ───────────── help ───────────── */
+
+const KEYS = [
+  ["move", [
+    [["j", "k"], "down / up"],
+    [["g g", "G"], "top / bottom"],
+    [["^d", "^u"], "half page"],
+    [["a"], "first thing that needs you"],
+    [["g n"], "next that needs you, any project"],
+    [["space"], "fold / unfold phase"],
+    [["b"], "jump to blocker"],
+  ]],
+  ["projects", [
+    [["J", "K"], "next / prev project"],
+    [["1", "…", "9"], "project by number"],
+    [["⌘K"], "palette — everything"],
+    [["p"], "open project.md"],
+    [["L"], "open log.md"],
+  ]],
+  ["read", [
+    [["↵"], "toggle reader"],
+    [["tab", "l"], "focus reader"],
+    [["h", "esc"], "back to list"],
+    [["r"], "raw file / rendered"],
+    [["y"], "copy file path"],
+  ]],
+  ["act (through rex)", [
+    [["c"], "talk to the coordinator about this"],
+    [["o"], "nvim -R beside the coordinator"],
+    [["/"], "filter tasks"],
+    [["["], "toggle sidebar"],
+    [["t"], "paper / cocoa theme"],
+    [["?"], "this"],
+  ]],
+];
+
+function openHelp() {
+  S.help = true;
+  $("#help").innerHTML = `
+    <h3>keys</h3>
+    <div class="sub">nothing here needs a mouse. nothing here can write, either — agents own the files.</div>
+    <div class="help-cols">${KEYS.map(([g, rows]) => `<div class="help-group"><div class="hl">${g}</div>${rows.map(([ks, d]) => `<div class="help-row"><span class="keys">${ks.map((k) => (k === "…" ? `<span style="color:var(--faint)">…</span>` : `<kbd>${k}</kbd>`)).join("")}</span><span class="d">${d}</span></div>`).join("")}</div>`).join("")}</div>
+    <div class="legend">${Object.entries(STATUS).map(([st, s]) => `<span class="st-${st}"><span class="glyph">${s.glyph}</span> ${st}</span>`).join("")}</div>`;
+  $("#help-scrim").classList.add("on");
+  spin();
+  renderStatus();
+}
+
+function closeHelp() {
+  S.help = false;
+  $("#help-scrim").classList.remove("on");
+  renderStatus();
+}
+$("#help-scrim").addEventListener("mousedown", (e) => e.target.id === "help-scrim" && closeHelp());
+
+/* ───────────── filter ───────────── */
+
+function startFilter() {
+  S.filtering = true;
+  $("#filterbar").classList.add("on");
+  $("#filter").focus();
+  $("#filter").select();
+  renderStatus();
+}
+
+function endFilter(keep) {
+  S.filtering = false;
+  $("#filter").blur();
+  if (!keep || !S.filter) {
+    S.filter = "";
+    $("#filter").value = "";
+    $("#filterbar").classList.remove("on");
+  }
+  renderMain();
+}
+
+$("#filter").addEventListener("input", (e) => {
+  S.filter = e.target.value;
+  renderMain();
+});
+
+/* ───────────── keyboard ───────────── */
+
+function copyPath() {
+  const path = currentPath();
+  navigator.clipboard?.writeText(path).catch(() => {});
+  toast(`copied <b>${esc(path)}</b>`);
+}
+
+let pending = null;
+function which(show) {
+  $("#which").innerHTML = `<span><kbd>g</kbd> then</span><span><kbd>g</kbd> top</span><span><kbd>p</kbd> project.md</span><span><kbd>n</kbd> next that needs you</span>`;
+  $("#which").classList.toggle("on", show);
+}
+
+function nextNeeding() {
+  const list = allTasks().filter((t) => t.status === "needs-you");
+  const cur = P().tasks.find((t) => S.cursor?.endsWith(`:${t.id}`));
+  jumpTo(list[(list.indexOf(cur) + 1) % list.length]);
+}
+
+function setZone(z) {
+  S.zone = z;
+  renderReader();
+  renderStatus();
+}
+
+function readerKey(k, e) {
+  const body = $("#reader-body");
+  const half = body.clientHeight / 2;
+  const acts = {
+    j: () => body.scrollBy({ top: 48 }),
+    ArrowDown: () => body.scrollBy({ top: 48 }),
+    k: () => body.scrollBy({ top: -48 }),
+    ArrowUp: () => body.scrollBy({ top: -48 }),
+    d: () => body.scrollBy({ top: half }),
+    u: () => body.scrollBy({ top: -half }),
+    G: () => (body.scrollTop = body.scrollHeight),
+    h: () => setZone("list"),
+    Escape: () => setZone("list"),
+    Tab: () => setZone("list"),
+  };
+  if (!acts[k]) return false;
+  if (!e.ctrlKey && (k === "d" || k === "u")) return false;
+  acts[k]();
+  return true;
+}
+
+const NORMAL = {
+  j: () => move(1),
+  ArrowDown: () => move(1),
+  k: () => move(-1),
+  ArrowUp: () => move(-1),
+  G: () => move(nav.length),
+  J: () => selectProject((S.p + 1) % projects.length),
+  K: () => selectProject((S.p - 1 + projects.length) % projects.length),
+  Enter: () => (S.reader ? closeReader() : openReader()),
+  Tab: () => { if (!S.reader) openReader(); setZone("reader"); },
+  l: () => { if (!S.reader) openReader(); setZone("reader"); },
+  " ": () => toggleFold(),
+  a: () => { const el = nav.find((e) => e.dataset.nav.startsWith("att:")); el ? setCursor(el.dataset.nav) : toast("nothing needs you here ☼"); },
+  b: () => {
+    const t = P().tasks.find((x) => S.cursor?.endsWith(`:${x.id}`));
+    t?.blocked_by ? revealTask(P(), t.blocked_by) : toast("no blocker on this one");
+  },
+  p: () => { setCursor("project"); openReader(); },
+  L: () => { if (!P().log) return toast("no log.md in this project"); setCursor("log"); openReader(); },
+  r: () => { S.raw = !S.raw; S.reader ? renderReader() : openReader(); },
+  y: () => copyPath(),
+  c: () => talkToCoordinator(),
+  o: () => openInEditor(),
+  "/": () => startFilter(),
+  "[": () => { S.sidebar = !S.sidebar; renderAll(); },
+  t: () => setTheme(document.documentElement.dataset.theme === "paper" ? "cocoa" : "paper"),
+  "?": () => openHelp(),
+  ":": () => openPalette(),
+  Escape: () => {
+    if (S.reader) return closeReader();
+    if (S.filter) return endFilter(false);
+  },
+};
+
+document.addEventListener("keydown", (e) => {
+  const k = e.key;
+
+  if ((e.metaKey || e.ctrlKey) && k.toLowerCase() === "k") {
+    e.preventDefault();
+    return S.palette ? closePalette() : openPalette();
+  }
+
+  if (S.palette) {
+    const down = k === "ArrowDown" || (e.ctrlKey && (k === "n" || k === "j"));
+    const up = k === "ArrowUp" || (e.ctrlKey && k === "p");
+    if (down || up) {
+      e.preventDefault();
+      S.palSel = Math.max(0, Math.min(palItems.length - 1, S.palSel + (down ? 1 : -1)));
+      renderPalette();
+    } else if (k === "Enter") {
+      e.preventDefault();
+      runPalette(S.palSel);
+    } else if (k === "Escape") {
+      e.preventDefault();
+      closePalette();
+    }
+    return;
+  }
+
+  if (S.help) {
+    e.preventDefault();
+    if (k === "Escape" || k === "?" || k === "q") closeHelp();
+    return;
+  }
+
+  if (S.filtering) {
+    if (k === "Enter" || k === "Escape" || k === "ArrowDown") {
+      e.preventDefault();
+      endFilter(k !== "Escape");
+    }
+    return;
+  }
+
+  if (e.metaKey || e.altKey) return;
+
+  if (k === "g" && !e.ctrlKey) {
+    e.preventDefault();
+    if (pending === "g") {
+      pending = null;
+      which(false);
+      if (S.zone === "reader") return ($("#reader-body").scrollTop = 0);
+      return move(-nav.length);
+    }
+    pending = "g";
+    setTimeout(() => which(pending === "g"), 350);
+    return;
+  }
+
+  if (pending === "g") {
+    pending = null;
+    which(false);
+    if (k === "p") return e.preventDefault(), NORMAL.p();
+    if (k === "n") return e.preventDefault(), nextNeeding();
+  }
+
+  if (S.zone === "reader" && readerKey(k, e)) return e.preventDefault();
+
+  if (e.ctrlKey) {
+    if (k === "d" || k === "u") {
+      e.preventDefault();
+      move(k === "d" ? 8 : -8);
+    }
+    return;
+  }
+
+  if (/^[1-9]$/.test(k)) return selectProject(+k - 1);
+
+  const act = NORMAL[k];
+  if (!act) return;
+  e.preventDefault();
+  act();
+});
+
+renderAll();
+</script>
+</body>
+</html>
