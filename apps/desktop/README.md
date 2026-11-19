@@ -41,7 +41,7 @@ shows an error in the window.
   the mockup's CSS variables, as a Tailwind `@theme` in `src/styles.css`.
 - `src/keys.ts`: the keys sheet (`?`) as one table, by group: what each row shows and what it binds,
   so the sheet and the bindings cannot drift. `readerKeys` overrides the motion keys to scroll the
-  reader while it has focus. `c` and `o` come with Rex (M6) and are not bound.
+  reader while it has focus.
 - `src/keymap.ts`: reads chords (`ctrl+d`, `mod+k`) and two-key sequences (`g g`, `g n`, `g p`)
   against a keymap. App keys never run in a text input (only `mod+` chords do), in a dialog, for
   Enter/Space on a button or handle, or for keys a widget handled; the list handles `j`/`k`/`↵`

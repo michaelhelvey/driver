@@ -1,6 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import { parseProject } from "@driver/core";
-import { cursorRow, isFinished, rowsOf, visibleRows, type Folded } from "../src/rows.ts";
+import {
+  cursorRow,
+  isFinished,
+  referenceOf,
+  rowsOf,
+  visibleRows,
+  type Folded,
+} from "../src/rows.ts";
 import { fixtureTree } from "./fixtures.ts";
 
 const tree = await fixtureTree();
@@ -84,6 +91,22 @@ describe("cursorRow", () => {
 
   it("falls back to the header when nothing needs the user", () => {
     expect(cursorRow(rowsOf(project("onboarding-docs")), null, none)?.key).toBe("project");
+  });
+});
+
+describe("referenceOf", () => {
+  it.each([
+    ["project", "re pdk-2-sentry (pdk-2-sentry): /r/pdk-2-sentry/project.md"],
+    ["attention:t4-user-info", "re t4-user-info (t4-user-info): /r/pdk-2-sentry/project.md"],
+    ["log", "re log (pdk-2-sentry): /r/pdk-2-sentry/project.md"],
+    [
+      "phase:pdk-2.0",
+      "re pdk-2.0 (pdk 2.0 — extension, preload, facade): /r/pdk-2-sentry/project.md",
+    ],
+    ["task:plan-doc", "re plan-doc (plan doc): /r/pdk-2-sentry/project.md"],
+  ])("%s → %s", (key, want) => {
+    const row = rows.find((candidate) => candidate.key === key);
+    expect(row && referenceOf(row, "pdk-2-sentry", pdk, "/r/pdk-2-sentry/project.md")).toBe(want);
   });
 });
 

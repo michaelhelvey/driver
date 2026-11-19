@@ -232,6 +232,14 @@ describe("driver desktop", () => {
     expect(read).toContain("not allowed");
   });
 
+  it("c writes a reference to the cursor row to the clipboard", async () => {
+    await browser.keys("c");
+    await browser.waitUntil(async () => (await toast())?.includes("copied reference") === true, {
+      timeout: 2000,
+      timeoutMsg: `no "copied reference" toast after c`,
+    });
+  });
+
   it("closes the reader when its handle collapses it, so the next activate opens it", async () => {
     await browser.keys("Enter");
     await expect($("[aria-label=Reader]")).toBeExisting();

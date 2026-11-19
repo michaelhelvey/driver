@@ -50,6 +50,25 @@ export function rowsOf(project: Project): Row[] {
   ];
 }
 
+/**
+ * The text `c` copies for a row, to paste into an agent: `re <id> (<title>): <path>`. A task or
+ * attention row names its task, a phase header its phase, the project header the project by its
+ * slug, and the log row `log` in the project. `path` is the row's file on disk, as `y` copies it.
+ *
+ * @example
+ * referenceOf(row, "pdk-2-sentry", project, "/Users/me/.driver/pdk-2-sentry/03a-framework-apps/01-t4-coa.md");
+ * // "re t4-coa (t4-coa): /Users/me/.driver/pdk-2-sentry/03a-framework-apps/01-t4-coa.md"
+ */
+export function referenceOf(row: Row, slug: string, project: Project, path: string): string {
+  const { id, title } =
+    "task" in row
+      ? row.task
+      : "phase" in row
+        ? row.phase
+        : { id: row.kind === "log" ? "log" : slug, title: project.meta.title };
+  return `re ${id} (${title}): ${path}`;
+}
+
 const searchText = (task: Task): string =>
   [
     task.id,

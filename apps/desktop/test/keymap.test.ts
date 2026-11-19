@@ -158,6 +158,8 @@ const SHOWN_AS: Readonly<Record<string, string[]>> = {
 
 const chordsOf = (shown: string): string[] => SHOWN_AS[shown] ?? [shown];
 
+const copyReference = () => void "copy";
+
 describe("KEYS", () => {
   const actions = new Proxy({} as Actions, { get: () => () => {} });
   const keymap = {
@@ -172,7 +174,19 @@ describe("KEYS", () => {
     },
   );
 
-  it("binds nothing for c and o, which come with Rex", () => {
-    expect(Object.keys(keymap).filter((key) => ["c", "o"].includes(key))).toEqual([]);
+  it("shows c in the keys sheet and binds it to copy a reference", () => {
+    const row = KEYS.flatMap(({ rows }) => rows).find((r) => r.show.includes("c"));
+    expect(row?.does).toBe("copy a reference for an agent");
+    expect(
+      row?.bind(
+        new Proxy(actions, {
+          get: (_, key) => (key === "copyReference" ? copyReference : () => {}),
+        }),
+      ),
+    ).toEqual({ c: copyReference });
+  });
+
+  it("binds nothing to o", () => {
+    expect(Object.keys(keymap)).not.toContain("o");
   });
 });

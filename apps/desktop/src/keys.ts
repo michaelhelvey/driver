@@ -22,6 +22,7 @@ export type Actions = {
   focusReader: () => void;
   raw: () => void;
   copyPath: () => void;
+  copyReference: () => void;
   filter: () => void;
   sidebar: () => void;
   theme: () => void;
@@ -46,8 +47,7 @@ export type KeyRow = {
 const NUMBERS = Array.from({ length: 9 }, (_, i) => String(i + 1));
 
 /**
- * The keys sheet (`?`), by group, as in `mockups/driver.html`: every key the app binds, and
- * nothing it does not. `c` and `o` come with Rex (milestone 6).
+ * The keys sheet (`?`), by group: every key the app binds, and nothing it does not.
  */
 export const KEYS: readonly { group: string; rows: readonly KeyRow[] }[] = [
   {
@@ -108,6 +108,11 @@ export const KEYS: readonly { group: string; rows: readonly KeyRow[] }[] = [
       { show: ["h", "esc"], does: "back to list", bind: (a) => ({ Escape: a.escape }) },
       { show: ["r"], does: "raw file / rendered", bind: (a) => ({ r: a.raw }) },
       { show: ["y"], does: "copy file path", bind: (a) => ({ y: a.copyPath }) },
+      {
+        show: ["c"],
+        does: "copy a reference for an agent",
+        bind: (a) => ({ c: a.copyReference }),
+      },
     ],
   },
   {

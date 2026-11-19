@@ -223,6 +223,16 @@ test("drives every key of the sheet with no mouse", async ({ page }) => {
     );
   });
 
+  await test.step("c copies a reference to the cursor row's task", async () => {
+    await keys(page, "c");
+    await expect
+      .poll(() => page.evaluate(async () => navigator.clipboard.readText()))
+      .toBe(`re t4-coa (t4-coa): ${ROOT}/${COA}`);
+    await expect(page.getByRole("region", { name: "Notifications" })).toContainText(
+      "copied reference",
+    );
+  });
+
   await test.step("? shows the keys; list keys do nothing under it", async () => {
     await keys(page, "?");
     await expect(mode(page)).toHaveText("KEYS");

@@ -4,7 +4,7 @@ import type { Clipboard } from "./clipboard.ts";
 import { focusSoon, listRow } from "./focus.ts";
 import type { Actions, ReaderActions } from "./keys.ts";
 import type { Entry } from "./projects.ts";
-import { phaseIdOf, type Row } from "./rows.ts";
+import { phaseIdOf, referenceOf, type Row } from "./rows.ts";
 import { toggleTheme } from "./theme.ts";
 import type { Notify } from "./toasts.tsx";
 import type { View } from "./view.ts";
@@ -164,18 +164,27 @@ export function createNavigation(deps: NavigationDeps): Navigation {
     if (!view.state.reader.open) cursorKey(view.open);
     focusSoon(readerPane);
   };
-  const copy = (path: string) =>
+  const copy = (text: string, ...toast: Parameters<Notify["info"]>) =>
     deps
       .clipboard()
-      .writeText(path)
+      .writeText(text)
       .then(
-        () => notify.info("copied", path),
-        (error: unknown) => notify.error("could not copy the path:", errorText(error)),
+        () => notify.info(...toast),
+        (error: unknown) => notify.error("could not copy:", errorText(error)),
       );
+  const pathOf = (entry: Entry) =>
+    `${deps.root()}/${entry.slug}/${deps.cursor()?.path ?? "project.md"}`;
   const copyPath = () => {
     const entry = deps.current();
-    if (entry !== undefined)
-      void copy(`${deps.root()}/${entry.slug}/${deps.cursor()?.path ?? "project.md"}`);
+    if (entry === undefined) return;
+    const path = pathOf(entry);
+    void copy(path, "copied", path);
+  };
+  const copyReference = () => {
+    const entry = open();
+    const row = deps.cursor();
+    if (entry === undefined || row === undefined) return;
+    void copy(referenceOf(row, entry.slug, entry.project, pathOf(entry)), "copied reference");
   };
   const filter = () => {
     view.setEditing(true);
@@ -208,6 +217,7 @@ export function createNavigation(deps: NavigationDeps): Navigation {
     focusReader,
     raw: () => view.toggleRaw(),
     copyPath,
+    copyReference,
     filter,
     sidebar: () => view.toggleSidebar(),
     theme: toggleTheme,

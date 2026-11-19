@@ -122,7 +122,7 @@ const MODES: readonly [
 /**
  * The whole app over one {@link FileSource}: the project sidebar, the open project's page, the
  * reader beside it, the status line, and the keys, palette, keys sheet and toasts over them.
- * `y` copies paths to `clipboard`.
+ * `y` and `c` copy to `clipboard`.
  *
  * @example
  * render(() => <App source={fixtureSource()} clipboard={browserClipboard()} />, document.body);
@@ -255,6 +255,7 @@ export function App(props: { source: FileSource; clipboard: Clipboard }) {
     { label: "open log.md", key: "L", run: nav.logFile },
     { label: "filter tasks", key: "/", run: nav.filter },
     { label: "copy path", key: "y", run: nav.copyPath },
+    { label: "copy reference", key: "c", run: nav.copyReference },
     { label: "show all keys", key: "?", run: nav.help },
   ];
 
