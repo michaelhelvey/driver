@@ -1,10 +1,27 @@
+import { createServer } from "node:net";
 import { defineConfig } from "@playwright/test";
 
-const PORT = 1433;
+const freePort = async () =>
+  new Promise<number>((resolve, reject) => {
+    const server = createServer().unref();
+    server.on("error", reject);
+    server.listen(0, "localhost", () => {
+      const address = server.address();
+      server.close(() =>
+        typeof address === "object" && address !== null
+          ? resolve(address.port)
+          : reject(new Error("no port")),
+      );
+    });
+  });
+
+process.env["E2E_WEB_PORT"] ??= String(await freePort());
+const PORT = Number(process.env["E2E_WEB_PORT"]);
 
 /**
  * `bun run e2e:web`: the browser build on the bundled fixtures, in the installed Chrome, driven
- * by the keyboard only. It starts its own dev server on port 1433.
+ * by the keyboard only. It starts its own dev server on a free port (`E2E_WEB_PORT`, picked once
+ * per run and inherited by the workers), so runs in several worktrees do not collide.
  */
 export default defineConfig({
   testDir: "e2e/web",

@@ -77,9 +77,10 @@ shows an error in the window.
   `bun run e2e:desktop` after the e2e build). The spec starts the real MCP server (`packages/mcp`)
   on that root and runs the plan's user verification steps 1–3 with keys only.
 - `e2e/web/keyboard.pw.ts` (`bun run e2e:web`): Playwright, in the installed Chrome, against the
-  browser build on its own dev server (port 1433). One flow presses every key of the sheet with no
-  mouse and checks what shows and which row has focus after each. It reads only the bundled fixtures
-  and takes about 10s, so `validate` runs it.
+  browser build on its own dev server, on a free port so runs in several worktrees do not collide.
+  One flow presses every key of the sheet with no mouse and checks what shows and which row has
+  focus after each. It reads only the bundled fixtures and takes about 10s, so `validate` runs it;
+  it needs Google Chrome installed (`channel: "chrome"`).
 
 ## Parity residuals
 
