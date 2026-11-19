@@ -20,7 +20,7 @@ function PhaseRow(props: { row: RowOf<"phase"> }) {
       </span>
       <span class="truncate font-bold">{props.row.phase.title}</span>
       <span class="text-right text-[11.5px] text-muted">
-        {props.row.done}/{props.row.total}
+        {props.row.phase.progress.done}/{props.row.phase.progress.total}
       </span>
       <span class="col-start-3 truncate text-xs text-muted">{props.row.phase.note}</span>
     </CursorListRow>

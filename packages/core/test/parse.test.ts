@@ -34,13 +34,13 @@ describe("parseProject on fixtures", () => {
       nowIn: "framework",
       updated: "2026-11-19T07:38:00Z",
       phases: [
-        "00:pdk-2.0",
-        "01:framework",
-        "02:canaries",
-        "03a:framework-apps",
-        "03b:custom-builds",
-        "03c:pdk-bump",
-        "04:cleanup",
+        "00:pdk-2.0 8/8",
+        "01:framework 1/3",
+        "02:canaries 0/2",
+        "03a:framework-apps 0/7",
+        "03b:custom-builds 0/3",
+        "03c:pdk-bump 0/3",
+        "04:cleanup 0/1",
       ],
       needsYou: ["t4-agent-skills", "t4-authorization-platform"],
       blocked: ["t4-user-info"],
@@ -51,7 +51,7 @@ describe("parseProject on fixtures", () => {
       progress: { done: 2, total: 6, skipped: 0, percent: 33 },
       nowIn: "mockup",
       updated: "2026-11-19T07:39:00Z",
-      phases: ["01:file-format", "02:mockup", "03:mcp"],
+      phases: ["01:file-format 2/2", "02:mockup 0/2", "03:mcp 0/2"],
       needsYou: ["keymap"],
       blocked: [],
     },
@@ -59,7 +59,9 @@ describe("parseProject on fixtures", () => {
     expect(c.project.progress).toEqual(c.progress);
     expect(c.project.nowIn).toBe(c.nowIn);
     expect(c.project.updated).toBe(c.updated);
-    expect(c.project.phases.map((p) => `${p.label}:${p.id}`)).toEqual(c.phases);
+    expect(
+      c.project.phases.map((p) => `${p.label}:${p.id} ${p.progress.done}/${p.progress.total}`),
+    ).toEqual(c.phases);
     expect(c.project.needsYou.map((t) => t.id)).toEqual(c.needsYou);
     expect(c.project.blocked.map((t) => t.id)).toEqual(c.blocked);
   });

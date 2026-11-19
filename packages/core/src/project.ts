@@ -61,12 +61,16 @@ export type Task = TaskData & {
   steps: { done: number; total: number };
 };
 
-/** A phase with its derived values. `path` is its folder, `note` the first line of its body. */
+/**
+ * A phase with its derived values. `path` is its folder, `note` the first line of its body, and
+ * `progress` counts its own tasks the way the project's does.
+ */
 export type Phase = Omit<PhaseData, "tasks"> & {
   label: string;
   path: string;
   note: string;
   tasks: Task[];
+  progress: Progress;
 };
 
 /**
@@ -221,13 +225,17 @@ const deriveTask = (phase: PhaseData, task: TaskData): Task => ({
  * derive(data).progress; // { done: 9, total: 27, skipped: 1, percent: 33 }
  */
 export function derive(data: ProjectData): Project {
-  const phases = data.phases.map((phase) => ({
-    ...phase,
-    label: phase.prefix,
-    path: `${phase.prefix}-${phase.id}`,
-    note: phase.body.split("\n")[0] ?? "",
-    tasks: phase.tasks.map((task) => deriveTask(phase, task)),
-  }));
+  const phases = data.phases.map((phase): Phase => {
+    const tasks = phase.tasks.map((task) => deriveTask(phase, task));
+    return {
+      ...phase,
+      label: phase.prefix,
+      path: `${phase.prefix}-${phase.id}`,
+      note: phase.body.split("\n")[0] ?? "",
+      tasks,
+      progress: progressOf(tasks),
+    };
+  });
   const tasks = phases.flatMap((phase) => phase.tasks);
   const stamps = [data.meta.updated, ...tasks.map((t) => t.updated), ...data.log.map((e) => e.at)];
   return {
