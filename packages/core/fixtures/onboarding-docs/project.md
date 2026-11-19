@@ -1,6 +1,6 @@
 ---
 title: onboarding-docs
-repo: ~/dev/t4/handbook
+repo: ~/dev/acme/handbook
 started: 2026-11-06
 updated: 2026-11-14T10:00:00Z
 ---

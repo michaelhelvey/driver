@@ -20,20 +20,21 @@ const project = (slug: string) =>
     ),
   );
 
-const pdk = project("pdk-2-sentry");
-const rows = rowsOf(pdk);
-const byDefault: Folded = (id) => isFinished(pdk.phases.find((p) => p.id === id) ?? pdk.phases[0]!);
+const pinion = project("pinion-2-plugins");
+const rows = rowsOf(pinion);
+const byDefault: Folded = (id) =>
+  isFinished(pinion.phases.find((p) => p.id === id) ?? pinion.phases[0]!);
 const none: Folded = () => false;
 
 describe("rowsOf", () => {
   it("puts the header, attention rows and log before the phases", () => {
     expect(rows.slice(0, 6).map((row) => row.key)).toEqual([
       "project",
-      "attention:t4-agent-skills",
-      "attention:t4-authorization-platform",
-      "attention:t4-user-info",
+      "attention:pinion-docs",
+      "attention:plugin-images",
+      "attention:plugin-embeds",
       "log",
-      "phase:pdk-2.0",
+      "phase:pinion-2.0",
     ]);
   });
 
@@ -61,8 +62,8 @@ describe("rowsOf", () => {
   });
 
   it("gives every row the file the reader shows", () => {
-    expect(rows.find((row) => row.key === "attention:t4-user-info")?.path).toBe(
-      "03c-pdk-bump/02-t4-user-info.md",
+    expect(rows.find((row) => row.key === "attention:plugin-embeds")?.path).toBe(
+      "03c-core-bump/02-plugin-embeds.md",
     );
     expect(rows.find((row) => row.key === "phase:canaries")?.path).toBe("02-canaries/phase.md");
   });
@@ -70,19 +71,24 @@ describe("rowsOf", () => {
 
 describe("cursorRow", () => {
   it.each([
-    { name: "no cursor yet", key: null, folded: none, want: "attention:t4-agent-skills" },
-    { name: "a row that is there", key: "task:t4-coa", folded: none, want: "task:t4-coa" },
+    { name: "no cursor yet", key: null, folded: none, want: "attention:pinion-docs" },
+    {
+      name: "a row that is there",
+      key: "task:plugin-sitemap",
+      folded: none,
+      want: "task:plugin-sitemap",
+    },
     {
       name: "a row that is gone",
       key: "task:renamed",
       folded: none,
-      want: "attention:t4-agent-skills",
+      want: "attention:pinion-docs",
     },
     {
       name: "a task in a folded phase",
       key: "task:plan-doc",
       folded: byDefault,
-      want: "phase:pdk-2.0",
+      want: "phase:pinion-2.0",
     },
     { name: "a task in an open phase", key: "task:plan-doc", folded: none, want: "task:plan-doc" },
   ])("$name → $want", ({ key, folded, want }) => {
@@ -95,16 +101,16 @@ describe("cursorRow", () => {
 });
 
 describe("referenceOf", () => {
-  const titled = { ...pdk, meta: { ...pdk.meta, title: "Sentry rollout" } };
+  const titled = { ...pinion, meta: { ...pinion.meta, title: "Plugin rollout" } };
   it.each([
-    ["project", "re pdk-2-sentry (Sentry rollout): /r/x.md"],
-    ["attention:t4-user-info", "re t4-user-info (t4-user-info): /r/x.md"],
-    ["log", "re log (Sentry rollout): /r/x.md"],
-    ["phase:pdk-2.0", "re pdk-2.0 (pdk 2.0 — extension, preload, facade): /r/x.md"],
+    ["project", "re pinion-2-plugins (Plugin rollout): /r/x.md"],
+    ["attention:plugin-embeds", "re plugin-embeds (plugin-embeds): /r/x.md"],
+    ["log", "re log (Plugin rollout): /r/x.md"],
+    ["phase:pinion-2.0", "re pinion-2.0 (pinion 2.0 — sandbox, preload, facade): /r/x.md"],
     ["task:plan-doc", "re plan-doc (plan doc): /r/x.md"],
   ])("%s → %s", (key, want) => {
     const row = rows.find((candidate) => candidate.key === key);
-    expect(row && referenceOf(row, "pdk-2-sentry", titled, "/r/x.md")).toBe(want);
+    expect(row && referenceOf(row, "pinion-2-plugins", titled, "/r/x.md")).toBe(want);
   });
 });
 

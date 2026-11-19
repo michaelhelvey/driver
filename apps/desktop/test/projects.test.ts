@@ -3,7 +3,7 @@ import { followProjects, type Entry } from "../src/projects.ts";
 import { memorySource } from "../src/source/memory.ts";
 import { fixtureTree, sleep, withStatus } from "./fixtures.ts";
 
-const SKILLS = "pdk-2-sentry/01-framework/02-t4-agent-skills.md";
+const SKILLS = "pinion-2-plugins/01-framework/02-pinion-docs.md";
 
 const follow = async () => {
   const tree = await fixtureTree();
@@ -34,9 +34,9 @@ describe("followProjects", () => {
       "billing-ledger-v2",
       "driver",
       "onboarding-docs",
-      "pdk-2-sentry",
+      "pinion-2-plugins",
     ]);
-    expect(percentOf(entries.get("pdk-2-sentry"))).toBe(33);
+    expect(percentOf(entries.get("pinion-2-plugins"))).toBe(33);
     stop();
   });
 
@@ -45,26 +45,30 @@ describe("followProjects", () => {
     const text = tree.get(SKILLS) ?? "";
     source.write(SKILLS, withStatus(text, "doing"));
     source.write(SKILLS, withStatus(text, "done"));
-    source.write("pdk-2-sentry/.lock", "");
+    source.write("pinion-2-plugins/.lock", "");
     await sleep(60);
-    expect(reads).toEqual(["pdk-2-sentry"]);
-    expect(percentOf(entries.get("pdk-2-sentry"))).toBe(37);
+    expect(reads).toEqual(["pinion-2-plugins"]);
+    expect(percentOf(entries.get("pinion-2-plugins"))).toBe(37);
     stop();
   });
 
   it.each([
     [
       "a file that does not parse",
-      "pdk-2-sentry/log.md",
+      "pinion-2-plugins/log.md",
       "no frontmatter",
       "log.md: no frontmatter",
     ],
-    ["an unknown file", "pdk-2-sentry/notes.md", "hi", "unknown file notes.md"],
+    ["an unknown file", "pinion-2-plugins/notes.md", "hi", "unknown file notes.md"],
   ])("shows %s as an error of that project only", async (_, path, text, message) => {
     const { source, entries, stop } = await follow();
     source.write(path, text);
     await sleep(60);
-    expect(entries.get("pdk-2-sentry")).toEqual({ kind: "error", slug: "pdk-2-sentry", message });
+    expect(entries.get("pinion-2-plugins")).toEqual({
+      kind: "error",
+      slug: "pinion-2-plugins",
+      message,
+    });
     expect(entries.get("driver")?.kind).toBe("ok");
     stop();
   });
@@ -85,7 +89,7 @@ describe("followProjects", () => {
     const readProject = source.readProject;
     let failures = 1;
     source.readProject = async (slug) => {
-      if (slug === "pdk-2-sentry" && failures-- > 0) throw new Error("ENOENT mid-rename");
+      if (slug === "pinion-2-plugins" && failures-- > 0) throw new Error("ENOENT mid-rename");
       return readProject(slug);
     };
     const entries = new Map<string, Entry | null>();
@@ -102,7 +106,7 @@ describe("followProjects", () => {
 
     source.write(SKILLS, withStatus(tree.get(SKILLS) ?? "", "done"));
     await sleep(60);
-    expect(percentOf(entries.get("pdk-2-sentry"))).toBe(37);
+    expect(percentOf(entries.get("pinion-2-plugins"))).toBe(37);
     stop();
   });
 

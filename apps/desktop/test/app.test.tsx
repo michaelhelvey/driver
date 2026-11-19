@@ -5,8 +5,8 @@ import { App } from "../src/app.tsx";
 import { memorySource } from "../src/source/memory.ts";
 import { fixtureTree, sleep, until, withStatus } from "./fixtures.ts";
 
-const SKILLS = "pdk-2-sentry/01-framework/02-t4-agent-skills.md";
-const AUTH = "pdk-2-sentry/02-canaries/02-t4-authorization-platform.md";
+const SKILLS = "pinion-2-plugins/01-framework/02-pinion-docs.md";
+const IMAGES = "pinion-2-plugins/02-canaries/02-plugin-images.md";
 const LIST = `main [aria-label="Project"]`;
 
 const percent = () =>
@@ -65,20 +65,18 @@ const focusList = () => document.querySelector<HTMLElement>(`${LIST} [tabindex='
 
 const moveCursor = async () => {
   focusList();
-  expect(cursorRow()).toContain("t4-authorization-platform");
+  expect(cursorRow()).toContain("plugin-images");
   ["j", "j", "k"].forEach((key) => press(key));
-  await until(() => cursorRow()?.includes("t4-user-info"), true);
-  expect(document.activeElement?.textContent).toContain("t4-user-info");
+  await until(() => cursorRow()?.includes("plugin-embeds"), true);
+  expect(document.activeElement?.textContent).toContain("plugin-embeds");
   press("k");
-  await until(() => cursorRow()?.includes("t4-authorization-platform"), true);
+  await until(() => cursorRow()?.includes("plugin-images"), true);
 };
 
-const readAuthPlatform = async (file: string) => {
+const readImages = async (file: string) => {
   press("Enter");
-  await until(readerPath, "fixtures/pdk-2-sentry/02-canaries/02-t4-authorization-platform.md");
-  expect(document.querySelector("[aria-label=Reader] h2")?.textContent).toBe(
-    "t4-authorization-platform",
-  );
+  await until(readerPath, "fixtures/pinion-2-plugins/02-canaries/02-plugin-images.md");
+  expect(document.querySelector("[aria-label=Reader] h2")?.textContent).toBe("plugin-images");
   press("r");
   await until(raw, file.replace(/\n$/, ""));
   press("Enter");
@@ -100,7 +98,7 @@ it("loads the fixtures, follows a file change, moves the cursor and opens the re
       await until(title, "driver");
 
       press("2", document.body);
-      await until(title, "pdk-2-sentry");
+      await until(title, "pinion-2-plugins");
       await until(percent, "33");
       expect(document.body.textContent).toContain("9 of 27 tasks done · 1 skipped");
 
@@ -109,12 +107,12 @@ it("loads the fixtures, follows a file change, moves the cursor and opens the re
       expect(document.body.textContent).toContain("10 of 27 tasks done · 1 skipped");
 
       await moveCursor();
-      await readAuthPlatform(tree.get(AUTH) ?? "");
+      await readImages(tree.get(IMAGES) ?? "");
 
       press("J", document.body);
       await until(title, "billing-ledger-v2");
       press("K", document.body);
-      await until(title, "pdk-2-sentry");
+      await until(title, "pinion-2-plugins");
     },
     { scenario: "load, follow a change, move the cursor, open the reader" },
   );
@@ -122,12 +120,12 @@ it("loads the fixtures, follows a file change, moves the cursor and opens the re
   expectNoDiagnostics(artifact);
 });
 
-it("lists pdk-2-sentry's rows in page order, with the finished phase folded", async () => {
+it("lists pinion-2-plugins's rows in page order, with the finished phase folded", async () => {
   const { show } = await mount();
   dispose = show();
   await until(title, "driver");
   press("2", document.body);
-  await until(title, "pdk-2-sentry");
+  await until(title, "pinion-2-plugins");
 
   const rows = [...document.querySelectorAll<HTMLElement>(`${LIST} [data-kind]`)];
 
@@ -149,18 +147,18 @@ it("lists pdk-2-sentry's rows in page order, with the finished phase folded", as
   ]);
   expect(rows.map((row) => row.getAttribute("role"))).toEqual(rows.map(() => "option"));
   const phase00 = rows.find((row) => row.dataset.kind === "phase");
-  expect(phase00?.textContent).toContain("pdk 2.0 — extension, preload, facade✓ 8/8");
+  expect(phase00?.textContent).toContain("pinion 2.0 — sandbox, preload, facade✓ 8/8");
 
   focusList();
   ["j", "j", "j", "j"].forEach((key) => press(key));
-  await until(() => cursorRow()?.includes("pdk 2.0"), true);
+  await until(() => cursorRow()?.includes("pinion 2.0"), true);
   press(" ");
   await until(() => phasesOf(rowsNow())[0]?.[1].length, 9);
   press(" ");
   await until(() => phasesOf(rowsNow())[0]?.[1].length, 0);
 });
 
-const COA = "pdk-2-sentry/03a-framework-apps/01-t4-coa.md";
+const SITEMAP = "pinion-2-plugins/03a-framework-apps/01-plugin-sitemap.md";
 
 const focusedKey = () =>
   document.activeElement instanceof HTMLElement ? document.activeElement.dataset.row : undefined;
@@ -170,18 +168,18 @@ const cursorKey = () => document.querySelector<HTMLElement>(`${LIST} [data-curso
 it.each([
   [
     "moves it to the end of its phase",
-    (text: string): [string, string][] => [[COA.replace("/01-", "/08-"), text]],
+    (text: string): [string, string][] => [[SITEMAP.replace("/01-", "/08-"), text]],
   ],
   [
     "moves it to another phase",
     (text: string): [string, string][] => [
-      [COA.replace("03a-framework-apps/01-", "04-cleanup/02-"), text],
+      [SITEMAP.replace("03a-framework-apps/01-", "04-cleanup/02-"), text],
     ],
   ],
   [
     "marks it needs-you, so it also shows above",
     (text: string): [string, string][] => [
-      [COA, text.replace(/^status: .*$/m, "status: needs-you\nask: ship it?")],
+      [SITEMAP, text.replace(/^status: .*$/m, "status: needs-you\nask: ship it?")],
     ],
   ],
 ])(
@@ -191,19 +189,19 @@ it.each([
     dispose = show();
     await until(title, "driver");
     press("2", document.body);
-    await until(title, "pdk-2-sentry");
+    await until(title, "pinion-2-plugins");
     focusList();
-    const coa = document.querySelector<HTMLElement>(`${LIST} [data-row="task:t4-coa"]`);
-    coa?.click();
-    coa?.focus();
-    await until(focusedKey, "task:t4-coa");
+    const sitemap = document.querySelector<HTMLElement>(`${LIST} [data-row="task:plugin-sitemap"]`);
+    sitemap?.click();
+    sitemap?.focus();
+    await until(focusedKey, "task:plugin-sitemap");
 
-    source.remove(COA);
-    change(tree.get(COA) ?? "").forEach(([path, text]) => source.write(path, text));
+    source.remove(SITEMAP);
+    change(tree.get(SITEMAP) ?? "").forEach(([path, text]) => source.write(path, text));
 
-    await until(() => document.body.textContent.includes("t4-coa"), true);
+    await until(() => document.body.textContent.includes("plugin-sitemap"), true);
     await sleep(300);
-    expect([cursorKey(), focusedKey()]).toEqual(["task:t4-coa", "task:t4-coa"]);
+    expect([cursorKey(), focusedKey()]).toEqual(["task:plugin-sitemap", "task:plugin-sitemap"]);
   },
 );
 
@@ -216,7 +214,7 @@ it.each<[string, (copied: string[]) => Promise<void>]>([
       press("/");
       await until(mode, "FILTER");
       typeInto("[data-testid=filter]", "preload");
-      await until(shownPhases, "phase:pdk-2.0");
+      await until(shownPhases, "phase:pinion-2.0");
       press("Enter");
       await until(mode, "NORMAL");
       await until(focusedKey, cursorKey());
@@ -228,14 +226,14 @@ it.each<[string, (copied: string[]) => Promise<void>]>([
     "tab focuses the reader, j scrolls it, h goes back",
     async () => {
       press("Enter");
-      await until(readerPath, `fixtures/${"pdk-2-sentry/01-framework/02-t4-agent-skills.md"}`);
+      await until(readerPath, `fixtures/${"pinion-2-plugins/01-framework/02-pinion-docs.md"}`);
       press("Tab");
       await until(mode, "READER");
       press("j");
-      expect(cursorKey()).toBe("attention:t4-agent-skills");
+      expect(cursorKey()).toBe("attention:pinion-docs");
       press("h");
       await until(mode, "NORMAL");
-      await until(focusedKey, "attention:t4-agent-skills");
+      await until(focusedKey, "attention:pinion-docs");
     },
   ],
   [
@@ -245,11 +243,11 @@ it.each<[string, (copied: string[]) => Promise<void>]>([
       await until(title, "billing-ledger-v2");
       press("k", document.activeElement, { metaKey: true });
       await until(() => document.activeElement?.matches(PALETTE_INPUT), true);
-      typeInto(PALETTE_INPUT, "t4-coa");
+      typeInto(PALETTE_INPUT, "plugin-sitemap");
       press("Enter");
-      await until(title, "pdk-2-sentry");
-      await until(cursorKey, "task:t4-coa");
-      await until(readerPath, `fixtures/${COA}`);
+      await until(title, "pinion-2-plugins");
+      await until(cursorKey, "task:plugin-sitemap");
+      await until(readerPath, `fixtures/${SITEMAP}`);
     },
   ],
   [
@@ -265,8 +263,8 @@ it.each<[string, (copied: string[]) => Promise<void>]>([
   dispose = show();
   await until(title, "driver");
   press("2");
-  await until(title, "pdk-2-sentry");
-  await until(focusedKey, "attention:t4-agent-skills");
+  await until(title, "pinion-2-plugins");
+  await until(focusedKey, "attention:pinion-docs");
 
   const { artifact } = await captureArtifact(async () => run(copied), { scenario });
 
@@ -276,7 +274,7 @@ it.each<[string, (copied: string[]) => Promise<void>]>([
 const mountBroken = async () => {
   const mounted = await mount();
   mounted.source.write("onboarding-docs/project.md", "not a project");
-  mounted.source.write("pdk-2-sentry/project.md", "not a project");
+  mounted.source.write("pinion-2-plugins/project.md", "not a project");
   dispose = mounted.show();
   await until(title, "driver");
   press("3", document.body);
@@ -286,7 +284,7 @@ const mountBroken = async () => {
 };
 
 it.each([
-  ["J", "pdk-2-sentry"],
+  ["J", "pinion-2-plugins"],
   ["K", "billing-ledger-v2"],
 ])("%s steps from a project that does not parse to its neighbour", async (key, next) => {
   await mountBroken();

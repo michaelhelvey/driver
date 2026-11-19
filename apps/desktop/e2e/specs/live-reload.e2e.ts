@@ -36,8 +36,8 @@ const focusedRow = async () =>
 const toast = async () =>
   browser.execute(() => document.querySelector("[aria-label=Notifications]")?.textContent);
 
-const midstreamPath = async () =>
-  join(await root(), "pdk-2-sentry", "03a-framework-apps", "07-t4-midstream-insights.md");
+const mermaidPath = async () =>
+  join(await root(), "pinion-2-plugins", "03a-framework-apps", "07-plugin-mermaid.md");
 
 const pasteboard = () => execFileSync("pbpaste", { encoding: "utf8" });
 
@@ -129,9 +129,9 @@ describe("driver desktop", () => {
     expect(result).toEqual({ injected: "blocked", applied: "7px" });
   });
 
-  it("1. shows pdk-2-sentry at 33%, with two rows that need you and one blocked", async () => {
+  it("1. shows pinion-2-plugins at 33%, with two rows that need you and one blocked", async () => {
     await browser.keys("2");
-    await expect($("h1")).toHaveText("pdk-2-sentry");
+    await expect($("h1")).toHaveText("pinion-2-plugins");
     await expect($("[data-testid=headline-percent]")).toHaveText("33%");
     await expect($("main")).toHaveText(expect.stringContaining("9 of 27 tasks done · 1 skipped"));
     const glyphs = await $$(`main [data-kind="attention"] > span:nth-child(2)`).map((glyph) =>
@@ -154,14 +154,14 @@ describe("driver desktop", () => {
     expect(page.grain).toBe(`url("data:image/svg+xml;utf8`);
   });
 
-  it("2. j then ↵ opens t4-authorization-platform in the reader, and r its raw file", async () => {
-    const path = join("pdk-2-sentry", "02-canaries", "02-t4-authorization-platform.md");
-    await expect(cursorRow()).toHaveAttribute("data-row", "attention:t4-agent-skills");
+  it("2. j then ↵ opens plugin-images in the reader, and r its raw file", async () => {
+    const path = join("pinion-2-plugins", "02-canaries", "02-plugin-images.md");
+    await expect(cursorRow()).toHaveAttribute("data-row", "attention:pinion-docs");
     await browser.keys("j");
-    await expect(cursorRow()).toHaveAttribute("data-row", "attention:t4-authorization-platform");
+    await expect(cursorRow()).toHaveAttribute("data-row", "attention:plugin-images");
     await browser.keys("Enter");
     await expect($("[data-testid=reader-path]")).toHaveText(expect.stringContaining(path));
-    await expect($("[aria-label=Reader] h2")).toHaveText("t4-authorization-platform");
+    await expect($("[aria-label=Reader] h2")).toHaveText("plugin-images");
     await browser.keys("r");
     const raw = await readFile(join(await root(), path), "utf8");
     await expect($("[data-testid=reader-raw]")).toHaveText(raw.split("\n")[0] ?? "", {
@@ -172,7 +172,7 @@ describe("driver desktop", () => {
     );
   });
 
-  it("3. an MCP apply marking t4-agent-skills done shows within 1s, without a reload", async () => {
+  it("3. an MCP apply marking pinion-docs done shows within 1s, without a reload", async () => {
     const before = await $("html").getAttribute("data-theme");
     const flipped = before === "cocoa" ? "paper" : "cocoa";
     await browser.keys("t");
@@ -180,9 +180,9 @@ describe("driver desktop", () => {
 
     const percent = await $("[data-testid=headline-percent]").getElement();
     await apply({
-      slug: "pdk-2-sentry",
-      log: "t4-agent-skills #31 merged.",
-      ops: [{ op: "task", id: "t4-agent-skills", status: { kind: "done" } }],
+      slug: "pinion-2-plugins",
+      log: "pinion-docs #17 merged.",
+      ops: [{ op: "task", id: "pinion-docs", status: { kind: "done" } }],
     });
     const written = Date.now();
     await browser.waitUntil(async () => (await percent.getText()) === "37%", {
@@ -194,7 +194,7 @@ describe("driver desktop", () => {
     console.log(`headline reached 37% ${elapsed}ms after the MCP apply returned`);
     expect(elapsed).toBeLessThan(1000);
 
-    await expect($(`main [data-row="task:t4-agent-skills"] .text-sage`)).toHaveText("●");
+    await expect($(`main [data-row="task:pinion-docs"] .text-sage`)).toHaveText("●");
     await expect($("html")).toHaveAttribute("data-theme", flipped);
     await expect($("main")).toHaveText(expect.stringContaining("10 of 27 tasks done"));
   });
@@ -202,42 +202,39 @@ describe("driver desktop", () => {
   it("keeps focus on the cursor row when an MCP apply moves it to the end of its phase", async () => {
     await browser.keys(["Meta", "k"]);
     await expect($(`[role=dialog] [data-slot="command-input"]`)).toBeFocused();
-    await browser.keys("t4-coa".split(""));
+    await browser.keys("plugin-sitemap".split(""));
     await browser.keys("Enter");
-    await expect(cursorRow()).toHaveAttribute("data-row", "task:t4-coa");
+    await expect(cursorRow()).toHaveAttribute("data-row", "task:plugin-sitemap");
     await browser.keys("Escape");
     await expect($("[aria-label=Reader]")).not.toBeExisting();
-    await browser.waitUntil(async () => (await focusedRow()) === "task:t4-coa");
+    await browser.waitUntil(async () => (await focusedRow()) === "task:plugin-sitemap");
 
     await apply({
-      slug: "pdk-2-sentry",
-      log: "t4-coa waits for the rest of its phase now.",
-      ops: [{ op: "task", id: "t4-coa", after: "t4-midstream-insights" }],
+      slug: "pinion-2-plugins",
+      log: "plugin-sitemap waits for the rest of its phase now.",
+      ops: [{ op: "task", id: "plugin-sitemap", after: "plugin-mermaid" }],
     });
     await browser.waitUntil(
       async () =>
         (await $$(`main [data-kind="task"]`).map((row) => row.getAttribute("data-row")))
           .join(" ")
-          .includes("task:t4-midstream-insights task:t4-coa"),
-      { timeout: 1000, timeoutMsg: "t4-coa did not move below t4-midstream-insights" },
+          .includes("task:plugin-mermaid task:plugin-sitemap"),
+      { timeout: 1000, timeoutMsg: "plugin-sitemap did not move below plugin-mermaid" },
     );
-    await browser.waitUntil(async () => (await focusedRow()) === "task:t4-coa", {
+    await browser.waitUntil(async () => (await focusedRow()) === "task:plugin-sitemap", {
       timeout: 1000,
-      timeoutMsg: "focus left t4-coa when it moved",
+      timeoutMsg: "focus left plugin-sitemap when it moved",
     });
     await browser.keys("k");
-    await expect(cursorRow()).toHaveAttribute("data-row", "task:t4-midstream-insights");
+    await expect(cursorRow()).toHaveAttribute("data-row", "task:plugin-mermaid");
   });
 
   it("y writes the cursor row's absolute path to the system clipboard", async () => {
-    await expectCopied("y", await midstreamPath());
+    await expectCopied("y", await mermaidPath());
   });
 
   it("c writes a reference to the cursor row, with its absolute path, to the system clipboard", async () => {
-    await expectCopied(
-      "c",
-      `re t4-midstream-insights (t4-midstream-insights): ${await midstreamPath()}`,
-    );
+    await expectCopied("c", `re plugin-mermaid (plugin-mermaid): ${await mermaidPath()}`);
   });
 
   it("cannot read the clipboard back", async () => {

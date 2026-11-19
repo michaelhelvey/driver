@@ -22,7 +22,7 @@ type ProjectCase = {
   blocked: string[];
 };
 
-const pdk = parseProject(await loadFixture("pdk-2-sentry"));
+const pinion = parseProject(await loadFixture("pinion-2-plugins"));
 const base = await loadFixture("driver");
 const driver = parseProject(base);
 const billing = parseProject(await loadFixture("billing-ledger-v2"));
@@ -31,22 +31,22 @@ const onboarding = parseProject(await loadFixture("onboarding-docs"));
 describe("parseProject on fixtures", () => {
   it.each<ProjectCase>([
     {
-      name: "pdk-2-sentry",
-      project: pdk,
+      name: "pinion-2-plugins",
+      project: pinion,
       progress: { done: 9, total: 27, skipped: 1, percent: 33 },
       nowIn: "framework",
       updated: "2026-11-19T07:38:00Z",
       phases: [
-        "00:pdk-2.0 8/8",
+        "00:pinion-2.0 8/8",
         "01:framework 1/3",
         "02:canaries 0/2",
         "03a:framework-apps 0/7",
         "03b:custom-builds 0/3",
-        "03c:pdk-bump 0/3",
+        "03c:core-bump 0/3",
         "04:cleanup 0/1",
       ],
-      needsYou: ["t4-agent-skills", "t4-authorization-platform"],
-      blocked: ["t4-user-info"],
+      needsYou: ["pinion-docs", "plugin-images"],
+      blocked: ["plugin-embeds"],
     },
     {
       name: "driver",
@@ -90,20 +90,20 @@ describe("parseProject on fixtures", () => {
   });
 
   it.each([
-    { project: pdk, id: "plan-doc", label: "00.1", steps: "6/6", kind: "done" },
-    { project: pdk, id: "cloudwatch-log-loss", label: "00.9", steps: "2/3", kind: "skipped" },
-    { project: pdk, id: "t4-agent-skills", label: "01.2", steps: "1/3", kind: "needs-you" },
+    { project: pinion, id: "plan-doc", label: "00.1", steps: "6/6", kind: "done" },
+    { project: pinion, id: "watch-mode-flake", label: "00.9", steps: "2/3", kind: "skipped" },
+    { project: pinion, id: "pinion-docs", label: "01.2", steps: "1/3", kind: "needs-you" },
     {
-      project: pdk,
-      id: "t4-authorization-platform",
+      project: pinion,
+      id: "plugin-images",
       label: "02.2",
       steps: "4/9",
       kind: "needs-you",
     },
-    { project: pdk, id: "t4-coa", label: "03a.1", steps: "0/6", kind: "todo" },
-    { project: pdk, id: "t4-nip-review", label: "03b.3", steps: "0/5", kind: "todo" },
-    { project: pdk, id: "t4-user-info", label: "03c.2", steps: "0/4", kind: "blocked" },
-    { project: pdk, id: "ssm-alias", label: "04.1", steps: "0/3", kind: "todo" },
+    { project: pinion, id: "plugin-sitemap", label: "03a.1", steps: "0/6", kind: "todo" },
+    { project: pinion, id: "plugin-webmentions", label: "03b.3", steps: "0/5", kind: "todo" },
+    { project: pinion, id: "plugin-embeds", label: "03c.2", steps: "0/4", kind: "blocked" },
+    { project: pinion, id: "compat-shim", label: "04.1", steps: "0/3", kind: "todo" },
     { project: driver, id: "html-prototype", label: "02.1", steps: "3/4", kind: "doing" },
     { project: driver, id: "fs-watch", label: "03.2", steps: "0/0", kind: "todo" },
     { project: billing, id: "pr-backfill", label: "02.2", steps: "1/2", kind: "needs-you" },
@@ -117,18 +117,18 @@ describe("parseProject on fixtures", () => {
   });
 
   it("reads the flat status fields into the tagged union", () => {
-    expect(taskOf(pdk, "t4-authorization-platform").status).toEqual({
+    expect(taskOf(pinion, "plugin-images").status).toEqual({
       kind: "needs-you",
-      ask: "authorizer cold start +290ms — keep 500ms reserve, or drop to 200ms?",
+      ask: "image plugin cold build +290ms — keep 500ms reserve, or drop to 200ms?",
     });
-    expect(taskOf(pdk, "t4-user-info").status).toEqual({
+    expect(taskOf(pinion, "plugin-embeds").status).toEqual({
       kind: "blocked",
-      on: "is CT-597-lambda merging soon? asked in #platform",
+      on: "is async-render merging soon? asked in #plugins",
     });
   });
 
   it.each([
-    { name: "pdk-2-sentry", project: pdk },
+    { name: "pinion-2-plugins", project: pinion },
     { name: "driver", project: driver },
     { name: "billing-ledger-v2", project: billing },
     { name: "onboarding-docs", project: onboarding },
@@ -142,11 +142,11 @@ describe("parseProject on fixtures", () => {
   });
 
   it("splits the summary from the rest of project.md and the log oldest first", () => {
-    expect(pdk.summary).toStartWith("Moving every lambda");
-    expect(pdk.summary).not.toContain("## ");
-    expect(pdk.body).toStartWith("## the done rule");
-    expect(pdk.log.map((e) => e.at)).toEqual(pdk.log.map((e) => e.at).toSorted());
-    expect(pdk.log).toHaveLength(6);
+    expect(pinion.summary).toStartWith("Moving every plugin");
+    expect(pinion.summary).not.toContain("## ");
+    expect(pinion.body).toStartWith("## the done rule");
+    expect(pinion.log.map((e) => e.at)).toEqual(pinion.log.map((e) => e.at).toSorted());
+    expect(pinion.log).toHaveLength(6);
   });
 });
 
@@ -154,14 +154,14 @@ describe("readFrontmatter", () => {
   it.each<{ name: string; path: string; keys: string[]; pr: string | undefined }>([
     {
       name: "a task, in file order with quotes undone",
-      path: "02-canaries/02-t4-authorization-platform.md",
+      path: "02-canaries/02-plugin-images.md",
       keys: ["title", "status", "ask", "repo", "pr", "updated"],
-      pr: "#204",
+      pr: "#140",
     },
     { name: "a phase", path: "02-canaries/phase.md", keys: ["title"], pr: undefined },
     { name: "the log", path: "log.md", keys: ["title"], pr: undefined },
   ])("reads $name", async (c) => {
-    const text = (await loadFixture("pdk-2-sentry")).get(c.path) ?? "";
+    const text = (await loadFixture("pinion-2-plugins")).get(c.path) ?? "";
     const { data, body } = readFrontmatter(c.path, text);
     expect(Object.keys(data)).toEqual(c.keys);
     expect(data["pr"]).toBe(c.pr);
@@ -220,35 +220,35 @@ describe("parseProject on transient and bad trees", () => {
 
 describe("render", () => {
   it("get_project shows the 10 newest log entries newest first, without bodies", () => {
-    const out = renderProject("pdk-2-sentry", pdk);
+    const out = renderProject("pinion-2-plugins", pinion);
     expect(out.log[0]?.at).toBe("2026-11-19T07:38:00Z");
     expect(out.phases[3]?.tasks[0]).toEqual({
-      id: "t4-coa",
+      id: "plugin-sitemap",
       label: "03a.1",
-      title: "t4-coa",
+      title: "plugin-sitemap",
       status: { kind: "todo" },
       steps: "0/6",
-      repo: "t4-coa",
+      repo: "plugin-sitemap",
       pr: undefined,
     });
-    expect(out.phases[2]?.note).toStartWith("Two repos that together");
+    expect(out.phases[2]?.note).toStartWith("Two plugins that together");
   });
 
   it("list_projects and needs_me cover every project", () => {
     const projects = new Map([
-      ["pdk-2-sentry", pdk],
+      ["pinion-2-plugins", pinion],
       ["driver", driver],
     ]);
     expect(
       renderListProjects(projects).projects.map((p) => [p.slug, p.percent, p.needsYou, p.blocked]),
     ).toEqual([
-      ["pdk-2-sentry", 33, 2, 1],
+      ["pinion-2-plugins", 33, 2, 1],
       ["driver", 33, 1, 0],
     ]);
     expect(renderNeedsMe(projects).tasks.map((t) => `${t.project}/${t.id}`)).toEqual([
-      "pdk-2-sentry/t4-agent-skills",
-      "pdk-2-sentry/t4-authorization-platform",
-      "pdk-2-sentry/t4-user-info",
+      "pinion-2-plugins/pinion-docs",
+      "pinion-2-plugins/plugin-images",
+      "pinion-2-plugins/plugin-embeds",
       "driver/keymap",
     ]);
   });

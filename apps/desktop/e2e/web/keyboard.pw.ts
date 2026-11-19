@@ -1,8 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const ROOT = "packages/core/fixtures";
-const AUTH = "pdk-2-sentry/02-canaries/02-t4-authorization-platform.md";
-const COA = "pdk-2-sentry/03a-framework-apps/01-t4-coa.md";
+const IMAGES = "pinion-2-plugins/02-canaries/02-plugin-images.md";
+const SITEMAP = "pinion-2-plugins/03a-framework-apps/01-plugin-sitemap.md";
 
 const list = (page: Page) => page.locator(`main [role=listbox]`);
 const cursor = (page: Page) => list(page).locator("[data-cursor]");
@@ -46,22 +46,22 @@ test("drives every key of the sheet with no mouse", async ({ page }) => {
 
   await test.step("1–9 jumps to a project, and the cursor row has focus", async () => {
     await keys(page, "2");
-    await expect(title(page)).toHaveText("pdk-2-sentry");
+    await expect(title(page)).toHaveText("pinion-2-plugins");
     await expect(page.getByTestId("headline-percent")).toHaveText("33%");
-    await expectCursor(page, "attention:t4-agent-skills");
+    await expectCursor(page, "attention:pinion-docs");
   });
 
   await test.step("j / k / arrows move", async () => {
     await keys(page, "j");
-    await expectCursor(page, "attention:t4-authorization-platform");
+    await expectCursor(page, "attention:plugin-images");
     await keys(page, "k", "ArrowDown");
-    await expectCursor(page, "attention:t4-authorization-platform");
+    await expectCursor(page, "attention:plugin-images");
   });
 
   await test.step("↵ opens the reader on the cursor row's file", async () => {
     await keys(page, "Enter");
-    await expect(readerPath(page)).toHaveText(`${ROOT}/${AUTH}`);
-    await expect(reader(page).locator("h2")).toHaveText("t4-authorization-platform");
+    await expect(readerPath(page)).toHaveText(`${ROOT}/${IMAGES}`);
+    await expect(reader(page).locator("h2")).toHaveText("plugin-images");
     await expect(mode(page)).toHaveText("NORMAL");
   });
 
@@ -74,7 +74,7 @@ test("drives every key of the sheet with no mouse", async ({ page }) => {
     await expect.poll(() => viewport.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
     await keys(page, "g", "g");
     await expect.poll(() => viewport.evaluate((el) => el.scrollTop)).toBe(0);
-    await expect(cursor(page)).toHaveAttribute("data-row", "attention:t4-authorization-platform");
+    await expect(cursor(page)).toHaveAttribute("data-row", "attention:plugin-images");
   });
 
   await test.step("r shows the raw file, then rendered", async () => {
@@ -87,7 +87,7 @@ test("drives every key of the sheet with no mouse", async ({ page }) => {
   await test.step("h goes back to the list, l to the reader, esc back again", async () => {
     await keys(page, "h");
     await expect(mode(page)).toHaveText("NORMAL");
-    await expectCursor(page, "attention:t4-authorization-platform");
+    await expectCursor(page, "attention:plugin-images");
     await keys(page, "l");
     await expect(mode(page)).toHaveText("READER");
     await keys(page, "Escape");
@@ -95,33 +95,33 @@ test("drives every key of the sheet with no mouse", async ({ page }) => {
     await expect(reader(page)).toBeVisible();
     await keys(page, "Escape");
     await expect(reader(page)).toHaveCount(0);
-    await expectCursor(page, "attention:t4-authorization-platform");
+    await expectCursor(page, "attention:plugin-images");
   });
 
   await test.step("G / g g go to the bottom and top, ^d / ^u by half a page", async () => {
     await keys(page, "G");
-    await expectCursor(page, "task:ssm-alias");
+    await expectCursor(page, "task:compat-shim");
     await keys(page, "g", "g");
     await expectCursor(page, "project");
     await keys(page, "Control+d");
-    await expectCursor(page, "task:t4-agent-skills");
+    await expectCursor(page, "task:pinion-docs");
     await keys(page, "Control+u");
     await expectCursor(page, "project");
   });
 
   await test.step("a goes to the first thing that needs you", async () => {
     await keys(page, "a");
-    await expectCursor(page, "attention:t4-agent-skills");
+    await expectCursor(page, "attention:pinion-docs");
   });
 
   await test.step("space folds and unfolds the cursor's phase", async () => {
     await keys(page, "G");
-    await expectCursor(page, "task:ssm-alias");
+    await expectCursor(page, "task:compat-shim");
     await keys(page, " ");
     await expectCursor(page, "phase:cleanup");
-    await expect(row(page, "task:ssm-alias")).toBeHidden();
+    await expect(row(page, "task:compat-shim")).toBeHidden();
     await keys(page, " ");
-    await expect(row(page, "task:ssm-alias")).toBeVisible();
+    await expect(row(page, "task:compat-shim")).toBeVisible();
     await expect(reader(page)).toHaveCount(0);
   });
 
@@ -129,7 +129,7 @@ test("drives every key of the sheet with no mouse", async ({ page }) => {
     await keys(page, "/");
     await expect(mode(page)).toHaveText("FILTER");
     await page.keyboard.type("preload");
-    await expect.poll(() => phases(page)).toEqual(["phase:pdk-2.0"]);
+    await expect.poll(() => phases(page)).toEqual(["phase:pinion-2.0"]);
     await expect(row(page, "task:preload")).toBeVisible();
     await expect(page.getByTestId("filter-count")).toHaveText("3 of 28");
     await keys(page, "j");
@@ -138,7 +138,7 @@ test("drives every key of the sheet with no mouse", async ({ page }) => {
     await expect(mode(page)).toHaveText("NORMAL");
     await expect(page.locator("footer")).toContainText("/preload");
     await keys(page, "G");
-    await expectCursor(page, "task:pdk-sentry-dsn");
+    await expectCursor(page, "task:manifest-hooks");
     await keys(page, "Escape");
     await expect(page.getByTestId("filter")).toHaveCount(0);
     await expect.poll(() => phases(page)).toHaveLength(7);
@@ -147,11 +147,11 @@ test("drives every key of the sheet with no mouse", async ({ page }) => {
 
   await test.step("p and L open project.md and log.md", async () => {
     await keys(page, "p");
-    await expect(readerPath(page)).toHaveText(`${ROOT}/pdk-2-sentry/project.md`);
+    await expect(readerPath(page)).toHaveText(`${ROOT}/pinion-2-plugins/project.md`);
     await keys(page, "L");
-    await expect(readerPath(page)).toHaveText(`${ROOT}/pdk-2-sentry/log.md`);
+    await expect(readerPath(page)).toHaveText(`${ROOT}/pinion-2-plugins/log.md`);
     await keys(page, "g", "p");
-    await expect(readerPath(page)).toHaveText(`${ROOT}/pdk-2-sentry/project.md`);
+    await expect(readerPath(page)).toHaveText(`${ROOT}/pinion-2-plugins/project.md`);
     await keys(page, "Escape");
   });
 
@@ -159,7 +159,7 @@ test("drives every key of the sheet with no mouse", async ({ page }) => {
     await keys(page, "J");
     await expect(title(page)).toHaveText("billing-ledger-v2");
     await keys(page, "K");
-    await expect(title(page)).toHaveText("pdk-2-sentry");
+    await expect(title(page)).toHaveText("pinion-2-plugins");
   });
 
   await test.step("b jumps to the blocker", async () => {
@@ -183,8 +183,8 @@ test("drives every key of the sheet with no mouse", async ({ page }) => {
     await expectCursor(page, "task:keymap");
     await expect(readerPath(page)).toHaveText(`${ROOT}/driver/02-prototype/02-keymap.md`);
     await keys(page, "g", "n");
-    await expect(title(page)).toHaveText("pdk-2-sentry");
-    await expectCursor(page, "task:t4-agent-skills");
+    await expect(title(page)).toHaveText("pinion-2-plugins");
+    await expectCursor(page, "task:pinion-docs");
     await keys(page, "Escape");
   });
 
@@ -196,36 +196,36 @@ test("drives every key of the sheet with no mouse", async ({ page }) => {
     await expect(title(page)).toHaveText("onboarding-docs");
     await expect(mode(page)).toHaveText("NORMAL");
     await openPalette(page);
-    await page.keyboard.type("t4-coa");
+    await page.keyboard.type("plugin-sitemap");
     await keys(page, "Enter");
-    await expect(title(page)).toHaveText("pdk-2-sentry");
-    await expectCursor(page, "task:t4-coa");
-    await expect(readerPath(page)).toHaveText(`${ROOT}/${COA}`);
+    await expect(title(page)).toHaveText("pinion-2-plugins");
+    await expectCursor(page, "task:plugin-sitemap");
+    await expect(readerPath(page)).toHaveText(`${ROOT}/${SITEMAP}`);
     await openPalette(page);
     await page.keyboard.type("zz");
     await expect(page.getByText("nothing matches. it's not in a file anywhere.")).toBeVisible();
     await keys(page, "Escape");
     await expect(mode(page)).toHaveText("NORMAL");
-    await expectCursor(page, "task:t4-coa");
+    await expectCursor(page, "task:plugin-sitemap");
     await openPalette(page);
     await keys(page, "Meta+k");
     await expect(page.getByRole("dialog", { name: "palette" })).toHaveCount(0);
     await expect(mode(page)).toHaveText("NORMAL");
-    await expectCursor(page, "task:t4-coa");
+    await expectCursor(page, "task:plugin-sitemap");
   });
 
   await test.step("y copies the cursor row's path", async () => {
     await keys(page, "y");
     await expect
       .poll(() => page.evaluate(async () => navigator.clipboard.readText()))
-      .toBe(`${ROOT}/${COA}`);
+      .toBe(`${ROOT}/${SITEMAP}`);
     await expect(page.getByRole("region", { name: "Notifications" })).toContainText(
-      `copied ${ROOT}/${COA}`,
+      `copied ${ROOT}/${SITEMAP}`,
     );
   });
 
   await test.step("c copies a reference to the cursor row's task", async () => {
-    const reference = `re t4-coa (t4-coa): ${ROOT}/${COA}`;
+    const reference = `re plugin-sitemap (plugin-sitemap): ${ROOT}/${SITEMAP}`;
     await keys(page, "c");
     await expect
       .poll(() => page.evaluate(async () => navigator.clipboard.readText()))
@@ -242,11 +242,11 @@ test("drives every key of the sheet with no mouse", async ({ page }) => {
     await expect(sheet).toContainText("next that needs you, any project");
     await expect(sheet).not.toContainText("coordinator");
     await keys(page, "j", "t");
-    await expect(cursor(page)).toHaveAttribute("data-row", "task:t4-coa");
+    await expect(cursor(page)).toHaveAttribute("data-row", "task:plugin-sitemap");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "paper");
     await keys(page, "?");
     await expect(sheet).toHaveCount(0);
-    await expectCursor(page, "task:t4-coa");
+    await expectCursor(page, "task:plugin-sitemap");
   });
 
   await test.step("t switches the theme", async () => {
@@ -262,7 +262,7 @@ test("drives every key of the sheet with no mouse", async ({ page }) => {
     await expect(sidebar).toBeHidden();
     await keys(page, "[");
     await expect(sidebar).toBeVisible();
-    await expectCursor(page, "task:t4-coa");
+    await expectCursor(page, "task:plugin-sitemap");
   });
 
   expect(errors).toEqual([]);

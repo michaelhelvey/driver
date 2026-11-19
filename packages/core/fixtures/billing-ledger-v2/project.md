@@ -1,6 +1,6 @@
 ---
 title: billing-ledger-v2
-repo: ~/dev/t4/billing
+repo: ~/dev/acme/billing
 started: 2026-11-02
 updated: 2026-11-19T06:58:00Z
 ---

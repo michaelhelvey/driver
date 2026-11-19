@@ -42,7 +42,7 @@ let client = new Client({ name: "driver-e2e", version: "0" });
 let stderr: string[] = [];
 let transportErrors: string[] = [];
 
-const pdk = (path = "") => join(root, "pdk-2-sentry", path);
+const pinion = (path = "") => join(root, "pinion-2-plugins", path);
 
 const tree = async (dir: string): Promise<Map<string, string>> => {
   const paths = (await Array.fromAsync(new Glob("**").scan({ cwd: dir, dot: true }))).toSorted();
@@ -76,7 +76,7 @@ const markDone = (id: string) =>
   call(
     "apply",
     {
-      slug: "pdk-2-sentry",
+      slug: "pinion-2-plugins",
       log: `${id} is done.`,
       ops: [{ op: "task", id, status: { kind: "done" } }],
     },
@@ -146,23 +146,25 @@ describe("driver MCP server over stdio", () => {
       ["billing-ledger-v2", 40],
       ["driver", (await reparse("driver")).progress.percent],
       ["onboarding-docs", 33],
-      ["pdk-2-sentry", 33],
+      ["pinion-2-plugins", 33],
     ]);
-    const project = await call("get_project", { slug: "pdk-2-sentry" }, GetProjectOutputSchema);
+    const project = await call("get_project", { slug: "pinion-2-plugins" }, GetProjectOutputSchema);
     expect(project.progress).toEqual({ done: 9, total: 27, skipped: 1, percent: 33 });
     expect(project.phases.find((p) => p.id === "framework-apps")?.tasks[0]?.label).toBe("03a.1");
     const { files } = await call(
       "read",
-      { slug: "pdk-2-sentry", refs: ["t4-coa", "log"] },
+      { slug: "pinion-2-plugins", refs: ["plugin-sitemap", "log"] },
       ReadOutputSchema,
     );
-    expect(files.map((f) => f.path)).toEqual(["03a-framework-apps/01-t4-coa.md", "log.md"]);
-    expect(files[0]?.content).toBe(await Bun.file(pdk("03a-framework-apps/01-t4-coa.md")).text());
+    expect(files.map((f) => f.path)).toEqual(["03a-framework-apps/01-plugin-sitemap.md", "log.md"]);
+    expect(files[0]?.content).toBe(
+      await Bun.file(pinion("03a-framework-apps/01-plugin-sitemap.md")).text(),
+    );
     const { tasks } = await call("needs_me", {}, NeedsMeOutputSchema);
-    expect(tasks.filter((t) => t.project === "pdk-2-sentry").map((t) => t.id)).toEqual([
-      "t4-agent-skills",
-      "t4-authorization-platform",
-      "t4-user-info",
+    expect(tasks.filter((t) => t.project === "pinion-2-plugins").map((t) => t.id)).toEqual([
+      "pinion-docs",
+      "plugin-images",
+      "plugin-embeds",
     ]);
   });
 
@@ -185,83 +187,83 @@ describe("driver MCP server over stdio", () => {
     expect(await refusal("create_project", args)).toContain('project "new-one" already exists');
   });
 
-  it("apply marks t4-agent-skills done: 37%, exact frontmatter, log appended last", async () => {
-    const path = pdk("01-framework/02-t4-agent-skills.md");
+  it("apply marks pinion-docs done: 37%, exact frontmatter, log appended last", async () => {
+    const path = pinion("01-framework/02-pinion-docs.md");
     const [taskBefore, logBefore] = [
       await Bun.file(path).text(),
-      await Bun.file(pdk("log.md")).text(),
+      await Bun.file(pinion("log.md")).text(),
     ];
     const out = await call(
       "apply",
       {
-        slug: "pdk-2-sentry",
-        log: "t4-agent-skills #31 merged.",
-        ops: [{ op: "task", id: "t4-agent-skills", status: { kind: "done" } }],
+        slug: "pinion-2-plugins",
+        log: "pinion-docs #17 merged.",
+        ops: [{ op: "task", id: "pinion-docs", status: { kind: "done" } }],
       },
       ApplyOutputSchema,
     );
-    expect(out.changed).toEqual(["01-framework/02-t4-agent-skills.md", "log.md"]);
-    const project = await call("get_project", { slug: "pdk-2-sentry" }, GetProjectOutputSchema);
+    expect(out.changed).toEqual(["01-framework/02-pinion-docs.md", "log.md"]);
+    const project = await call("get_project", { slug: "pinion-2-plugins" }, GetProjectOutputSchema);
     expect(project.progress.percent).toBe(37);
     const at = project.log[0]?.at ?? "";
-    expect(project.log[0]).toEqual({ at, text: "t4-agent-skills #31 merged." });
+    expect(project.log[0]).toEqual({ at, text: "pinion-docs #17 merged." });
     const body = taskBefore.slice(taskBefore.indexOf("\n---\n") + 5);
     expect(await Bun.file(path).text()).toBe(
-      `---\ntitle: t4-agent-skills\nstatus: done\nrepo: t4-agent-skills\npr: "#31"\nupdated: ${at}\n---\n${body}`,
+      `---\ntitle: pinion-docs\nstatus: done\nrepo: pinion-docs\npr: "#17"\nupdated: ${at}\n---\n${body}`,
     );
-    expect(await Bun.file(pdk("log.md")).text()).toBe(
-      `${logBefore}\n## ${at}\n\nt4-agent-skills #31 merged.\n`,
+    expect(await Bun.file(pinion("log.md")).text()).toBe(
+      `${logBefore}\n## ${at}\n\npinion-docs #17 merged.\n`,
     );
-    const reparsed = await reparse("pdk-2-sentry");
+    const reparsed = await reparse("pinion-2-plugins");
     expect(reparsed.progress.percent).toBe(37);
-    expect(reparsed.log.at(-1)?.text).toBe("t4-agent-skills #31 merged.");
+    expect(reparsed.log.at(-1)?.text).toBe("pinion-docs #17 merged.");
   });
 
   it("apply renames and renumbers, and empties a phase folder that has a .DS_Store", async () => {
-    await Bun.write(pdk("04-cleanup/.DS_Store"), "finder");
+    await Bun.write(pinion("04-cleanup/.DS_Store"), "finder");
     await call(
       "apply",
       {
-        slug: "pdk-2-sentry",
-        log: "Cleanup goes first now; t4-coa moved into it.",
+        slug: "pinion-2-plugins",
+        log: "Cleanup goes first now; plugin-sitemap moved into it.",
         ops: [
           { op: "phase", id: "cleanup", after: null },
-          { op: "task", id: "t4-coa", phase: "cleanup", after: null },
+          { op: "task", id: "plugin-sitemap", phase: "cleanup", after: null },
           { op: "task", id: "follow-up", phase: "cleanup", title: "follow up" },
         ],
       },
       ApplyOutputSchema,
     );
-    const files = await tree(pdk());
+    const files = await tree(pinion());
     expect([...files.keys()].filter((path) => path.startsWith("."))).toEqual([]);
     expect([...new Set([...files.keys()].map((path) => path.split("/")[0]))]).toEqual([
       "00-cleanup",
-      "01-pdk-2.0",
+      "01-pinion-2.0",
       "02-framework",
       "03-canaries",
       "04-framework-apps",
       "05-custom-builds",
-      "06-pdk-bump",
+      "06-core-bump",
       "log.md",
       "project.md",
     ]);
     expect([...files.keys()].filter((path) => path.startsWith("00-cleanup/"))).toEqual([
-      "00-cleanup/01-t4-coa.md",
-      "00-cleanup/02-ssm-alias.md",
+      "00-cleanup/01-plugin-sitemap.md",
+      "00-cleanup/02-compat-shim.md",
       "00-cleanup/03-follow-up.md",
       "00-cleanup/phase.md",
     ]);
-    const reparsed = await reparse("pdk-2-sentry");
+    const reparsed = await reparse("pinion-2-plugins");
     expect(reparsed.tasks).toHaveLength(29);
-    expect(reparsed.tasks.find((t) => t.id === "t4-developer-dashboard")?.label).toBe("04.2");
+    expect(reparsed.tasks.find((t) => t.id === "plugin-analytics")?.label).toBe("04.2");
   });
 
   it("two concurrent applies to one project both land, and log.md has both entries", async () => {
-    await Promise.all([markDone("t4-agent-skills"), markDone("t4-coa")]);
-    const project = await reparse("pdk-2-sentry");
+    await Promise.all([markDone("pinion-docs"), markDone("plugin-sitemap")]);
+    const project = await reparse("pinion-2-plugins");
     expect(
       project.tasks
-        .filter((t) => ["t4-agent-skills", "t4-coa"].includes(t.id))
+        .filter((t) => ["pinion-docs", "plugin-sitemap"].includes(t.id))
         .map((t) => t.status),
     ).toEqual([{ kind: "done" }, { kind: "done" }]);
     expect(
@@ -269,45 +271,47 @@ describe("driver MCP server over stdio", () => {
         .slice(-2)
         .map((e) => e.text)
         .toSorted(),
-    ).toEqual(["t4-agent-skills is done.", "t4-coa is done."]);
+    ).toEqual(["pinion-docs is done.", "plugin-sitemap is done."]);
     expect(project.progress.done).toBe(11);
   });
 
   it.each([
     {
       name: "a bad blocked_by",
-      ops: [{ op: "task", id: "t4-coa", status: { kind: "blocked", on: "x", by: "ghost" } }],
-      error: 'task "t4-coa": blocked_by "ghost" is not a task',
+      ops: [
+        { op: "task", id: "plugin-sitemap", status: { kind: "blocked", on: "x", by: "ghost" } },
+      ],
+      error: 'task "plugin-sitemap": blocked_by "ghost" is not a task',
     },
     {
       name: "a needs-you without an ask",
-      ops: [{ op: "task", id: "t4-coa", status: { kind: "needs-you" } }],
+      ops: [{ op: "task", id: "plugin-sitemap", status: { kind: "needs-you" } }],
       error: "invalid arguments",
     },
     {
       name: "a valid op followed by an invalid one",
       ops: [
         { op: "phase", id: "cleanup", after: null },
-        { op: "task", id: "t4-coa", after: "nope" },
+        { op: "task", id: "plugin-sitemap", after: "nope" },
       ],
       error: 'no task "nope"',
     },
   ])("an invalid batch ($name) changes nothing on disk", async (c) => {
     const before = await tree(root);
-    const error = await refusal("apply", { slug: "pdk-2-sentry", log: "x.", ops: c.ops });
+    const error = await refusal("apply", { slug: "pinion-2-plugins", log: "x.", ops: c.ops });
     expect(error).toContain(c.error);
     expect(await tree(root)).toEqual(before);
   });
 
   it("a stale .lock fails apply after the timeout with the lock path, and writes nothing", async () => {
-    await Bun.write(pdk(".lock"), "");
+    await Bun.write(pinion(".lock"), "");
     const before = await tree(root);
     const error = await refusal("apply", {
-      slug: "pdk-2-sentry",
+      slug: "pinion-2-plugins",
       log: "x.",
-      ops: [{ op: "task", id: "t4-coa", status: { kind: "done" } }],
+      ops: [{ op: "task", id: "plugin-sitemap", status: { kind: "done" } }],
     });
-    expect(error).toContain(`${pdk(".lock")} is still there after ${LOCK_TIMEOUT_MS}ms`);
+    expect(error).toContain(`${pinion(".lock")} is still there after ${LOCK_TIMEOUT_MS}ms`);
     expect(await tree(root)).toEqual(before);
   });
 
@@ -332,8 +336,12 @@ describe("driver MCP server over stdio", () => {
   );
 
   it("logs every call to stderr as one JSON line", async () => {
-    await call("get_project", { slug: "pdk-2-sentry" }, GetProjectOutputSchema);
-    await refusal("apply", { slug: "pdk-2-sentry", log: "x.", ops: [{ op: "task", id: "nope" }] });
+    await call("get_project", { slug: "pinion-2-plugins" }, GetProjectOutputSchema);
+    await refusal("apply", {
+      slug: "pinion-2-plugins",
+      log: "x.",
+      ops: [{ op: "task", id: "nope" }],
+    });
     await refusal("get_project", { slug: "Not A Slug" });
     const lines = await logLines(3);
     expect(
@@ -344,8 +352,8 @@ describe("driver MCP server over stdio", () => {
         failed: line.error !== null,
       })),
     ).toEqual([
-      { tool: "get_project", project: "pdk-2-sentry", ops: 0, failed: false },
-      { tool: "apply", project: "pdk-2-sentry", ops: 1, failed: true },
+      { tool: "get_project", project: "pinion-2-plugins", ops: 0, failed: false },
+      { tool: "apply", project: "pinion-2-plugins", ops: 1, failed: true },
       { tool: "get_project", project: "Not A Slug", ops: 0, failed: true },
     ]);
   });

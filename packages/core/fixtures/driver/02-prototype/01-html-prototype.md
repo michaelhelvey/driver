@@ -8,7 +8,7 @@ Single file, no build. Embeds a fake `~/.driver` as script tags and parses the f
 
 - [x] first pass
 - [x] headline number instead of the status strip
-- [x] real project as the example (pdk-2-sentry)
+- [x] real project as the example (pinion-2-plugins)
 - [ ] keymap sign-off
 
 ## verification
