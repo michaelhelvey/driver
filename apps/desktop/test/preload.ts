@@ -3,6 +3,7 @@ import { transform } from "@solidjs/compiler";
 import { plugin } from "bun";
 
 GlobalRegistrator.register();
+Reflect.set(globalThis, "__UI_SDK_STRICT__", true);
 
 plugin({
   name: "solid-jsx",
