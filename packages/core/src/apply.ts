@@ -82,6 +82,17 @@ const putAfter = <T extends { id: string }>(items: T[], after: string, item: T):
   items.splice(items.findIndex((candidate) => candidate.id === after) + 1, 0, item);
 };
 
+const reposition = <T extends { id: string }>(
+  draft: Draft,
+  from: T[],
+  to: T[],
+  ids: { id: string; after: string },
+): void => {
+  const at = from.findIndex((item) => item.id === ids.id);
+  putAfter(to, ids.after, takeOut(from, ids.id));
+  if (from !== to || to.findIndex((item) => item.id === ids.id) !== at) draft.moved.add(ids.id);
+};
+
 const applyProjectOp = (draft: Draft, op: ProjectOp): void => {
   const { op: _op, ...fields } = op;
   Object.assign(draft.data, fields);
@@ -145,8 +156,7 @@ const placePhase = (draft: Draft, id: string, after: string): void => {
     after !== id && findPhase(draft, after) !== undefined,
     `phase "${id}": no phase "${after}" to go after`,
   );
-  putAfter(draft.data.phases, after, takeOut(draft.data.phases, id));
-  draft.moved.add(id);
+  reposition(draft, draft.data.phases, draft.data.phases, { id, after });
 };
 
 const placeTask = (draft: Draft, op: TaskOp, after: string): void => {
@@ -158,8 +168,7 @@ const placeTask = (draft: Draft, op: TaskOp, after: string): void => {
     `task "${op.id}": "${after}" is not in phase "${op.phase}"`,
   );
   const self = findTask(draft, op.id) ?? fail(`no task "${op.id}"`);
-  putAfter(target.phase.tasks, after, takeOut(self.phase.tasks, op.id));
-  draft.moved.add(op.id);
+  reposition(draft, self.phase.tasks, target.phase.tasks, { id: op.id, after });
 };
 
 const pad = (n: number): string => String(n).padStart(2, "0");

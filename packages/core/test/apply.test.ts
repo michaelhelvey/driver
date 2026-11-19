@@ -160,6 +160,15 @@ describe("planApply", () => {
     for (const [id, path] of Object.entries(c.paths)) expect(task(project, id).path).toBe(path);
   });
 
+  it.each([
+    { name: "phase", op: { op: "phase", id: "framework-apps", after: "canaries" } },
+    { name: "task", op: { op: "task", id: "t4-directory", after: "t4-data-services-mgmt" } },
+  ])("an after that names the current spot of a $name moves and relabels nothing", (c) => {
+    const { plan, project } = run([c.op]);
+    expect(plan.steps.filter((s) => s.kind === "move")).toEqual([]);
+    expect(project.tasks.map((t) => t.label)).toEqual(current.tasks.map((t) => t.label));
+  });
+
   it("reorders a task with after and renumbers the phase", () => {
     const { project } = run([{ op: "task", id: "t4-coa", after: "t4-directory" }]);
     const phase = project.phases.find((p) => p.id === "framework-apps");
