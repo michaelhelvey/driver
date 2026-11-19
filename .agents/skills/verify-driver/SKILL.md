@@ -21,7 +21,8 @@ Must be green before work is done. In order, and it stops at the first failure:
    can.
 2. `bun run test`: `bun test ./packages` (core table tests on `packages/core/fixtures`, the MCP disk
    adapter, and the MCP stdio e2e below), then the desktop unit and diagnostics tests
-   (`apps/desktop/test`, happy-dom, `expectNoDiagnostics` from `@solidjs/diagnostics`).
+   (`apps/desktop/test`, happy-dom, `expectNoDiagnostics` from `@solidjs/diagnostics`), including
+   `readme.test.ts`, which fails when the README's keys table drifts from `KEYS`.
 3. `bun run e2e:web`: Playwright drives the browser build on the bundled fixtures with the keyboard
    only (`apps/desktop/e2e/web/keyboard.pw.ts`): every key of the `?` sheet, what shows, which row
    has focus, the clipboard text of `y` and `c`, and no console errors. It starts its own dev server

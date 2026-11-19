@@ -236,36 +236,36 @@ its frontmatter as a table. `r` shows the raw file, exactly as on disk.
 
 Press `?` in the app for this sheet. It is the `KEYS` table in
 [`apps/desktop/src/keys.ts`](apps/desktop/src/keys.ts), which also binds the keys, so the two cannot
-drift.
+drift; `apps/desktop/test/readme.test.ts` fails when this table drifts from it.
 
-| group    | keys              | does                             |
-| -------- | ----------------- | -------------------------------- |
-| move     | `j` `k` / `↓` `↑` | down / up                        |
-|          | `g g` `G`         | top / bottom                     |
-|          | `^d` `^u`         | half page                        |
-|          | `a`               | first thing that needs you       |
-|          | `g n`             | next that needs you, any project |
-|          | `space`           | fold / unfold phase              |
-|          | `b`               | jump to blocker                  |
-| projects | `J` `K`           | next / prev project              |
-|          | `1` … `9`         | project by number                |
-|          | `⌘K`              | palette: everything              |
-|          | `p`               | open `project.md`                |
-|          | `L`               | open `log.md`                    |
-| read     | `↵`               | toggle reader                    |
-|          | `tab` `l`         | focus reader                     |
-|          | `h` `esc`         | back to list                     |
-|          | `r`               | raw file / rendered              |
-|          | `y`               | copy file path                   |
-|          | `c`               | copy a reference for an agent    |
-| view     | `/`               | filter tasks                     |
-|          | `[`               | toggle sidebar                   |
-|          | `t`               | paper / cocoa theme              |
-|          | `?`               | this                             |
+| group    | keys      | does                             |
+| -------- | --------- | -------------------------------- |
+| move     | `j` `k`   | down / up                        |
+|          | `g g` `G` | top / bottom                     |
+|          | `^d` `^u` | half page                        |
+|          | `a`       | first thing that needs you       |
+|          | `g n`     | next that needs you, any project |
+|          | `space`   | fold / unfold phase              |
+|          | `b`       | jump to blocker                  |
+| projects | `J` `K`   | next / prev project              |
+|          | `1` … `9` | project by number                |
+|          | `⌘K`      | palette — everything             |
+|          | `p`       | open project.md                  |
+|          | `L`       | open log.md                      |
+| read     | `↵`       | toggle reader                    |
+|          | `tab` `l` | focus reader                     |
+|          | `h` `esc` | back to list                     |
+|          | `r`       | raw file / rendered              |
+|          | `y`       | copy file path                   |
+|          | `c`       | copy a reference for an agent    |
+| view     | `/`       | filter tasks                     |
+|          | `[`       | toggle sidebar                   |
+|          | `t`       | paper / cocoa theme              |
+|          | `?`       | this                             |
 
-While the reader has focus, `j` `k` `^d` `^u` `g g` `G` scroll it, and `h`, `esc` and `tab` go back
-to the list. In the list, `esc` closes the reader, else clears the filter, and `Home` `End` go to
-the first / last row.
+`↓` `↑` work as `j` `k`, and `g p` as `p`. While the reader has focus, `j` `k` `^d` `^u` `g g` `G`
+scroll it, and `h`, `esc` and `tab` go back to the list. In the list, `esc` closes the reader, else
+clears the filter, and `Home` `End` go to the first / last row.
 
 `c` copies a line to paste into your coordinator, so you can talk about the row under the cursor
 without typing its path:
