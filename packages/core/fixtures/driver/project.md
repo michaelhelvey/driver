@@ -1,7 +1,6 @@
 ---
 title: driver
 repo: ~/dev/helvetici/driver
-rex: 01JD9A1K2XWE-coordinator
 started: 2026-11-19
 updated: 2026-11-19T07:39:00Z
 ---

@@ -103,13 +103,10 @@ export const CreateProjectInputSchema = z
     summary: TextSchema.describe(
       "What this project is and where it stands. Shown at the top of the project page.",
     ),
-    rex: LineSchema.optional().describe(
-      "Your `$REX_SESSION`. Leave it out if it is not set; never guess it.",
-    ),
   })
   .describe(
     [
-      "Create a new project directory with `project.md` and an empty `log.md`. `summary` is the free-text paragraph shown at the top of the project page: what this project is and where it stands. `rex` is optional: your `$REX_SESSION`, so the user can jump to you from the UI. Leave it out if `$REX_SESSION` is not set; never guess it. Fails if the slug already exists.",
+      "Create a new project directory with `project.md` and an empty `log.md`. `summary` is the free-text paragraph shown at the top of the project page: what this project is and where it stands. Fails if the slug already exists.",
       "Then add phases and tasks with `apply`.",
       STATUS_CONTRACT,
     ].join("\n\n"),
@@ -193,7 +190,6 @@ export const GetProjectOutputSchema = z.object({
   slug: z.string(),
   title: z.string(),
   repo: z.string(),
-  rex: z.string().optional(),
   started: z.string(),
   updated: TimestampSchema,
   summary: z.string(),

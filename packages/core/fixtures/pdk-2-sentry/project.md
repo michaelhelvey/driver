@@ -1,7 +1,6 @@
 ---
 title: pdk-2-sentry
 repo: ~/dev/t4/t4-platform-lambda
-rex: 01JD7Q3V8MZ4-coordinator
 started: 2026-11-10
 updated: 2026-11-19T07:38:00Z
 ---

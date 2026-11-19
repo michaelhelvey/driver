@@ -312,9 +312,9 @@ export function planApply(current: Project, input: unknown, now: Date): Plan | A
 export function planCreate(input: unknown, now: Date): Plan | ApplyError {
   const parsed = CreateProjectInputSchema.safeParse(input);
   if (!parsed.success) return { kind: "error", message: z.prettifyError(parsed.error) };
-  const { title, repo, rex, summary } = parsed.data;
+  const { title, repo, summary } = parsed.data;
   const at = stamp(now);
-  const meta = { title, repo, rex, started: at.slice(0, 10), updated: at };
+  const meta = { title, repo, started: at.slice(0, 10), updated: at };
   const project = derive({ meta, summary, body: "", phases: [], log: [] });
   return steps(new Map(), project, new Set(["log", "project"]));
 }

@@ -161,12 +161,9 @@ describe("driver MCP server over stdio", () => {
     ]);
   });
 
-  it.each([
-    { rex: undefined, rexLine: "" },
-    { rex: "01JDX-coordinator", rexLine: "rex: 01JDX-coordinator\n" },
-  ])("create_project writes project.md and an empty log.md (rex: $rex)", async (c) => {
+  it("create_project writes project.md and an empty log.md", async () => {
     const args = { slug: "new-one", title: "new one", repo: "~/dev/new", summary: "A project." };
-    const out = await call("create_project", { ...args, rex: c.rex }, CreateProjectOutputSchema);
+    const out = await call("create_project", args, CreateProjectOutputSchema);
     expect(out).toEqual({ slug: "new-one" });
     const files = await tree(join(root, "new-one"));
     expect([...files.keys()]).toEqual(["log.md", "project.md"]);
@@ -177,9 +174,9 @@ describe("driver MCP server over stdio", () => {
         ?.replace(STAMP, "<now>")
         .replace(/\d{4}-\d{2}-\d{2}/, "<day>"),
     ).toBe(
-      `---\ntitle: new one\nrepo: ~/dev/new\n${c.rexLine}started: <day>\nupdated: <now>\n---\n\nA project.\n`,
+      `---\ntitle: new one\nrepo: ~/dev/new\nstarted: <day>\nupdated: <now>\n---\n\nA project.\n`,
     );
-    expect((await reparse("new-one")).meta.rex).toBe(c.rex);
+    expect((await reparse("new-one")).meta.title).toBe("new one");
     expect(await refusal("create_project", args)).toContain('project "new-one" already exists');
   });
 

@@ -386,12 +386,9 @@ describe("planApply", () => {
 });
 
 describe("planCreate", () => {
-  it.each([
-    { rex: undefined, line: undefined },
-    { rex: "01JDX-coordinator", line: "rex: 01JDX-coordinator" },
-  ])("creates project.md and an empty log.md (rex: $rex)", (c) => {
+  it("creates project.md and an empty log.md", () => {
     const plan = planCreate(
-      { slug: "new", title: "new", repo: "~/dev/new", summary: "A project.", rex: c.rex },
+      { slug: "new", title: "new", repo: "~/dev/new", summary: "A project." },
       NOW,
     );
     if (plan.kind === "error") throw new Error(plan.message);
@@ -404,8 +401,6 @@ describe("planCreate", () => {
       progress: { percent: 0 },
       nowIn: null,
     });
-    expect(project.meta.rex).toBe(c.rex);
-    expect(created.get("project.md")?.includes("rex:")).toBe(c.line !== undefined);
     expect(plan.steps.flatMap((s) => (s.kind === "rename" ? [s.to] : []))).toEqual([
       "log.md",
       "project.md",

@@ -41,12 +41,11 @@ export function renderListProjects(projects: ReadonlyMap<string, Project>): List
  * renderProject("pdk-2-sentry", project).phases[4]?.tasks[0]?.label; // "03a.1"
  */
 export function renderProject(slug: string, project: Project): GetProjectOutput {
-  const { title, repo, rex, started } = project.meta;
+  const { title, repo, started } = project.meta;
   return {
     slug,
     title,
     repo,
-    rex,
     started,
     updated: project.updated,
     summary: project.summary,

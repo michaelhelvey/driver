@@ -113,7 +113,6 @@ export type Status = z.infer<typeof StatusSchema>;
 export const ProjectFrontmatterSchema = z.strictObject({
   title: LineSchema,
   repo: LineSchema,
-  rex: LineSchema.optional(),
   started: z.iso.date(),
   updated: TimestampSchema,
 });
