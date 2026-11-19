@@ -85,6 +85,19 @@ export type Project = Omit<ProjectData, "phases"> & {
 };
 
 const HIDDEN = /(^|\/)\./;
+
+/**
+ * Whether readers ignore `path`: it has a segment that starts with a dot (`.lock`, `.tmp-*`,
+ * `.DS_Store`). Paths use `/`.
+ *
+ * @example
+ * isHidden("pdk-2-sentry/.tmp-0-log.md"); // true
+ * isHidden("pdk-2-sentry/log.md"); // false
+ */
+export function isHidden(path: string): boolean {
+  return HIDDEN.test(path);
+}
+
 const PREFIX = "\\d+[a-z]?";
 const ROOT_PATH = /^(project|log)\.md$/;
 const PHASE_PATH = new RegExp(`^(${PREFIX})-(${ID_PATTERN})/phase\\.md$`);
@@ -156,7 +169,7 @@ const matching = <T>(
  * project.progress.percent; // 0
  */
 export function parseProject(files: ReadonlyMap<string, string>): Project {
-  const paths = [...files.keys()].filter((path) => !HIDDEN.test(path)).toSorted();
+  const paths = [...files.keys()].filter((path) => !isHidden(path)).toSorted();
   const unknown = paths.filter(
     (path) => ![ROOT_PATH, PHASE_PATH, TASK_PATH].some((r) => r.test(path)),
   );

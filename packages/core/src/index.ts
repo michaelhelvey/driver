@@ -8,6 +8,7 @@ export {
 } from "./apply.ts";
 export {
   comparePrefix,
+  isHidden,
   parseProject,
   refPaths,
   renderFiles,
