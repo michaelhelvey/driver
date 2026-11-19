@@ -4,11 +4,7 @@ import { ProjectPage } from "./project-page.tsx";
 import { Sidebar } from "./sidebar.tsx";
 import type { FileSource } from "./source/source.ts";
 import { createProjects } from "./state.ts";
-
-const toggleTheme = () => {
-  const root = document.documentElement;
-  root.dataset.theme = root.dataset.theme === "cocoa" ? "paper" : "cocoa";
-};
+import { toggleTheme } from "./theme.ts";
 
 /**
  * Shown in place of the page when the root cannot be read at all.

@@ -2,6 +2,12 @@ import { render } from "@solidjs/web";
 import { App, Unreadable } from "./app.tsx";
 import type { FileSource } from "./source/source.ts";
 import "./styles.css";
+import { applySavedTheme } from "./theme.ts";
+
+document.addEventListener("securitypolicyviolation", (event) =>
+  console.error(`driver: the CSP blocked ${event.blockedURI} (${event.violatedDirective})`),
+);
+applySavedTheme();
 
 const source = async (): Promise<FileSource> =>
   "__TAURI_INTERNALS__" in window
