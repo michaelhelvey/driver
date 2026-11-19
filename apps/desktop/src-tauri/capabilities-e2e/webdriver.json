@@ -1,0 +1,6 @@
+{
+  "identifier": "e2e-webdriver",
+  "description": "WebDriver for the e2e build only. Never shipped: added at runtime behind the `e2e` cargo feature.",
+  "windows": ["main"],
+  "permissions": ["wdio-webdriver:default"]
+}

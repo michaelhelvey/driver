@@ -1,0 +1,20 @@
+[package]
+name = "driver-desktop"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "driver_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7", features = [] }
+
+[dependencies]
+tauri = { version = "2.12", features = [] }
+tauri-plugin-fs = { version = "2.7", features = ["watch"] }
+tauri-plugin-wdio-webdriver = { version = "=1.5.1", optional = true }
+
+[features]
+e2e = ["dep:tauri-plugin-wdio-webdriver"]

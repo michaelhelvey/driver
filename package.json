@@ -11,12 +11,13 @@
     "format": "vp fmt",
     "lint": "vp lint --fix",
     "check": "vp check",
-    "test": "bun test",
-    "validate": "vp check && bun test"
+    "test": "bun test ./packages && bun run --cwd apps/desktop test",
+    "validate": "vp check && bun run test"
   },
   "devDependencies": {
     "@michaelhelvey/vite-config": "2.0.8",
     "@types/bun": "^1.4.4",
+    "eslint-plugin-solid": "0.20.0",
     "vite-plus": "^1.7.0"
   },
   "peerDependencies": {

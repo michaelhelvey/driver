@@ -35,3 +35,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # clankers
 .pi
+
+# tauri
+apps/desktop/src-tauri/target
+apps/desktop/src-tauri/gen
