@@ -185,7 +185,7 @@ its frontmatter as a table. `r` shows the raw file, exactly as on disk.
 `t` switches between cocoa (above) and paper, and the app remembers the choice.
 
 <p align="center">
-  <img src="docs/assets/paper.png" width="720" alt="driver in the paper theme on the bundled pdk-2-sentry fixture: 33% done, 9 of 27 tasks, two tasks that need you and one blocked task">
+  <img src="docs/assets/paper.png" width="720" alt="driver in the paper theme, tracking its own build: the driver project is 92% done with 13 of 14 tasks, nothing needs you, the recent log shows the push to GitHub, the desktop app phase is expanded to its six tasks, and the reader on the right shows the project's frontmatter and summary">
 </p>
 
 ### Keys
@@ -342,11 +342,10 @@ writes to the real system clipboard (the `y` and `c` checks), so expect your cli
 Every verification lever, and the steps to accept a change by hand, are in
 [`.agents/skills/verify-driver/SKILL.md`](.agents/skills/verify-driver/SKILL.md).
 
-The README's images live in `docs/assets/`. `hero.jpg` is a window capture of the installed app,
-resized with `magick <capture> -strip -resize 1600x -quality 95 -sampling-factor 4:4:4 hero.jpg`.
-`paper.png` comes from the browser build:
-`bun apps/desktop/scripts/screenshot.ts http://localhost:1420/ /tmp/paper.png 2 1440x900`, then
-`magick /tmp/paper.png -strip -dither None -colors 256 PNG8:docs/assets/paper.png`.
+The README's images live in `docs/assets/`. Both are window captures of the installed app.
+`hero.jpg` is resized with
+`magick <capture> -strip -resize 1600x -quality 95 -sampling-factor 4:4:4 hero.jpg`, and `paper.png`
+with `magick <capture> -strip -resize 1600x -dither None -colors 256 PNG8:paper.png`.
 `bun apps/desktop/scripts/readme-preview.ts` renders the README offline, checks its links, and
 screenshots it in light and dark.
 
