@@ -22,13 +22,11 @@ pub fn run() {
     builder
         .setup(|app| {
             let root = match std::env::var_os("DRIVER_ROOT") {
-                Some(dir) => {
-                    let dir = PathBuf::from(dir);
-                    app.fs_scope().allow_directory(&dir, true)?;
-                    dir
-                }
+                Some(dir) => PathBuf::from(dir),
                 None => app.path().home_dir()?.join(".driver"),
             };
+            let root = std::fs::canonicalize(&root).unwrap_or(root);
+            app.fs_scope().allow_directory(&root, true)?;
             eprintln!("driver: reading projects from {}", root.display());
             app.manage(Root(root));
 
