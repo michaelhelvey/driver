@@ -33,7 +33,13 @@ describe("rowsOf", () => {
   it.each<{ slug: string; first: string[] }>([
     {
       slug: "billing-ledger-v2",
-      first: ["project", "attention:pr-backfill", "attention:reconcile-job", "phase:discovery"],
+      first: [
+        "project",
+        "attention:pr-backfill",
+        "attention:reconcile-job",
+        "attention:read-flag",
+        "phase:discovery",
+      ],
     },
     {
       slug: "onboarding-docs",
@@ -42,7 +48,7 @@ describe("rowsOf", () => {
   ])("leaves out the log row when $slug has no log entries", ({ slug, first }) => {
     expect(
       rowsOf(project(slug))
-        .slice(0, 4)
+        .slice(0, first.length)
         .map((row): string => row.key),
     ).toEqual(first);
   });

@@ -1,6 +1,8 @@
 ---
 title: per-tenant read flag
-status: todo
+status: blocked
+blocked_on: the reconcile job, green for 3 nights
+blocked_by: reconcile-job
 updated: 2026-11-12T09:00:00Z
 ---
 

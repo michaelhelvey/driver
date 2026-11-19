@@ -66,7 +66,7 @@ describe("parseProject on fixtures", () => {
       updated: "2026-11-19T06:58:00Z",
       phases: ["01:discovery 1/1", "02:schema 1/2", "03:cutover 0/2"],
       needsYou: ["pr-backfill"],
-      blocked: ["reconcile-job"],
+      blocked: ["reconcile-job", "read-flag"],
     },
     {
       name: "onboarding-docs",
