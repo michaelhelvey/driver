@@ -19,6 +19,8 @@ export type ReaderProps = {
   text: string;
   raw: boolean;
   now: number;
+  /** Whether focus is in the reader, so its keys scroll it. */
+  focused: boolean;
 };
 
 const isStatus = (value: string): value is Status["kind"] => Object.hasOwn(STATUS, value);
@@ -38,7 +40,14 @@ const VALUES: Readonly<Record<string, (value: string, now: number) => JSX.Elemen
     </>
   ),
   pr: (value) => <span class="text-accent">{value}</span>,
-  blocked_by: (value) => <span class="text-accent">{value}</span>,
+  blocked_by: (value) => (
+    <>
+      <span class="text-accent">{value}</span>
+      <span class="ml-2 text-muted">
+        <kbd>b</kbd> jump
+      </span>
+    </>
+  ),
 };
 
 const plain = (value: string) => value;
@@ -147,7 +156,9 @@ export function Reader(props: ReaderProps) {
   return (
     <section
       aria-label="Reader"
-      class="flex h-full min-w-0 flex-col overflow-hidden border-l border-rule bg-panel"
+      tabindex="-1"
+      data-focused={props.focused ? "" : undefined}
+      class="relative flex h-full min-w-0 flex-col overflow-hidden border-l border-rule bg-panel outline-none before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:origin-left before:scale-x-0 before:bg-accent before:transition-transform before:content-[''] data-focused:before:scale-x-100"
     >
       <div class="flex items-center gap-4 border-b border-rule px-6.5 py-3 text-[11.5px] whitespace-nowrap text-muted">
         <span data-testid="reader-path" class="min-w-0 flex-1 truncate">

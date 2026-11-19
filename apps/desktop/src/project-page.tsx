@@ -25,6 +25,8 @@ export type PageProps = {
   onCursor: (key: string) => void;
   onActivate: (key: string) => void;
   onFold: (phaseId: string) => void;
+  /** The task filter. `rows` already holds only what it leaves. */
+  query: string;
 };
 
 const ROW = "group outline-none";
@@ -207,7 +209,9 @@ function Attention(props: { page: PageProps; kind: "needs-you" | "blocked" }) {
 
 function Calm(props: { page: PageProps }) {
   return (
-    <Show when={!props.page.rows.some((row) => row.kind === "attention")}>
+    <Show
+      when={props.page.query === "" && !props.page.rows.some((row) => row.kind === "attention")}
+    >
       <Label>needs you</Label>
       <div class="px-2 py-1.5 text-muted">
         <span class="text-amber">☼</span> nothing needs you here.
@@ -219,7 +223,7 @@ function Calm(props: { page: PageProps }) {
 function Recent(props: { page: PageProps }) {
   const entries = () => props.page.project.log.toReversed().slice(0, 3);
   return (
-    <Show when={props.page.project.log.length > 0}>
+    <Show when={props.page.rows.some((row) => row.kind === "log")}>
       <Label aside={`log.md · ${props.page.project.log.length} entries`}>recent</Label>
       <CursorListRow
         value="log"
@@ -350,27 +354,37 @@ function PhaseBlock(props: { phase: Phase; page: PageProps }) {
     );
   const folded = () => props.page.folded(props.phase.id);
   return (
-    <Collapsible open={!folded()} class="mt-[18px]">
-      <Show when={header()}>
-        {(row) => (
+    <Show when={header()}>
+      {(row) => (
+        <Collapsible open={!folded()} class="mt-[18px]">
           <PhaseRow
             row={row()}
             folded={folded()}
             onFold={() => props.page.onFold(props.phase.id)}
           />
-        )}
-      </Show>
-      <Html
-        as="div"
-        class="inline-ink mb-1 ml-[calc(8px+1.5ch+8px+2ch+8px)] truncate pr-3.5 text-[12px] text-muted"
-        html={renderInline(props.phase.note)}
-      />
-      <CollapsiblePanel class="ml-[calc(8px+1.5ch+8px+1ch)] border-l border-rule">
-        <For each={tasks()} keyed={(row) => row.key}>
-          {(row) => <TaskRow row={row()} now={props.page.now} />}
-        </For>
-      </CollapsiblePanel>
-    </Collapsible>
+          <Html
+            as="div"
+            class="inline-ink mb-1 ml-[calc(8px+1.5ch+8px+2ch+8px)] truncate pr-3.5 text-[12px] text-muted"
+            html={renderInline(props.phase.note)}
+          />
+          <CollapsiblePanel class="ml-[calc(8px+1.5ch+8px+1ch)] border-l border-rule">
+            <For each={tasks()} keyed={(task) => task.key}>
+              {(task) => <TaskRow row={task()} now={props.page.now} />}
+            </For>
+          </CollapsiblePanel>
+        </Collapsible>
+      )}
+    </Show>
+  );
+}
+
+function NoMatch(props: { page: PageProps }) {
+  return (
+    <Show when={!props.page.rows.some((row) => row.kind === "phase")}>
+      <div class="px-2 py-1.5 text-muted">
+        no tasks match <b class="text-ink-2">/{props.page.query}</b>
+      </div>
+    </Show>
   );
 }
 
@@ -392,6 +406,7 @@ function Overview(props: PageProps) {
       <For each={props.project.phases} keyed={(phase) => phase.id}>
         {(phase) => <PhaseBlock phase={phase()} page={props} />}
       </For>
+      <NoMatch page={props} />
       <div class="mt-14 text-center text-[11.5px] text-faint">
         ~ eof · {props.fileCount} files under {props.root}/{props.slug} ~
       </div>

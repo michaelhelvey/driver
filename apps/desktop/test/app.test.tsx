@@ -20,16 +20,45 @@ const readerPath = () => document.querySelector("[data-testid=reader-path]")?.te
 
 const raw = () => document.querySelector("[data-testid=reader-raw]")?.textContent;
 
-const press = (key: string, target: Element | null = document.activeElement) =>
+const press = (
+  key: string,
+  target: Element | null = document.activeElement,
+  init: KeyboardEventInit = {},
+) =>
   (target ?? document.body).dispatchEvent(
-    new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
+    new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init }),
   );
+
+const typeInto = (selector: string, text: string) => {
+  const input = document.querySelector<HTMLInputElement>(selector);
+  if (input === null) throw new Error(`no ${selector}`);
+  input.value = text;
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+};
+
+const mode = () => document.querySelector("[data-testid=mode]")?.textContent;
+
+const shownPhases = () =>
+  [...document.querySelectorAll<HTMLElement>(`${LIST} [data-kind="phase"]`)]
+    .map((row) => row.dataset.row)
+    .join(" ");
+
+const recordingClipboard = () => {
+  const copied: string[] = [];
+  return { copied, clipboard: { writeText: async (text: string) => void copied.push(text) } };
+};
 
 const mount = async () => {
   const tree = await fixtureTree();
   const source = memorySource("fixtures", tree);
+  const { copied, clipboard } = recordingClipboard();
   const root = document.body.appendChild(document.createElement("div"));
-  return { tree, source, show: () => render(() => <App source={source} />, root) };
+  return {
+    tree,
+    source,
+    copied,
+    show: () => render(() => <App source={source} clipboard={clipboard} />, root),
+  };
 };
 
 const focusList = () => document.querySelector<HTMLElement>(`${LIST} [tabindex='0']`)?.focus();
@@ -178,9 +207,83 @@ it.each([
   },
 );
 
+const PALETTE_INPUT = `[role=dialog] [data-slot="command-input"]`;
+
+it.each<[string, (copied: string[]) => Promise<void>]>([
+  [
+    "/ filters, keeps the filter on ↵, and esc clears it",
+    async () => {
+      press("/");
+      await until(mode, "FILTER");
+      typeInto("[data-testid=filter]", "preload");
+      await until(shownPhases, "phase:pdk-2.0");
+      press("Enter");
+      await until(mode, "NORMAL");
+      await until(focusedKey, cursorKey());
+      press("Escape");
+      await until(() => shownPhases().split(" ").length, 7);
+    },
+  ],
+  [
+    "tab focuses the reader, j scrolls it, h goes back",
+    async () => {
+      press("Enter");
+      await until(readerPath, `fixtures/${"pdk-2-sentry/01-framework/02-t4-agent-skills.md"}`);
+      press("Tab");
+      await until(mode, "READER");
+      press("j");
+      expect(cursorKey()).toBe("attention:t4-agent-skills");
+      press("h");
+      await until(mode, "NORMAL");
+      await until(focusedKey, "attention:t4-agent-skills");
+    },
+  ],
+  [
+    "⌘K jumps to a task in another project",
+    async () => {
+      press("J");
+      await until(title, "billing-ledger-v2");
+      press("k", document.activeElement, { metaKey: true });
+      await until(() => document.activeElement?.matches(PALETTE_INPUT), true);
+      typeInto(PALETTE_INPUT, "t4-coa");
+      press("Enter");
+      await until(title, "pdk-2-sentry");
+      await until(cursorKey, "task:t4-coa");
+      await until(readerPath, `fixtures/${COA}`);
+    },
+  ],
+  [
+    "y copies the cursor row's path",
+    async (copied) => {
+      press("y");
+      await until(() => copied.at(-1), `fixtures/${SKILLS}`);
+      await until(() => document.body.textContent.includes(`copied fixtures/${SKILLS}`), true);
+    },
+  ],
+])("%s, with no diagnostics", async (scenario, run) => {
+  const { show, copied } = await mount();
+  dispose = show();
+  await until(title, "driver");
+  press("2");
+  await until(title, "pdk-2-sentry");
+  await until(focusedKey, "attention:t4-agent-skills");
+
+  const { artifact } = await captureArtifact(async () => run(copied), { scenario });
+
+  expectNoDiagnostics(artifact);
+});
+
 it("says where it looks, and when to restart, when the root has no projects", async () => {
   const root = document.body.appendChild(document.createElement("div"));
-  dispose = render(() => <App source={memorySource("/Users/me/.driver", new Map())} />, root);
+  dispose = render(
+    () => (
+      <App
+        source={memorySource("/Users/me/.driver", new Map())}
+        clipboard={recordingClipboard().clipboard}
+      />
+    ),
+    root,
+  );
   await until(() => document.querySelector("[data-testid=empty]") !== null, true);
   const text = document.querySelector("[data-testid=empty]")?.textContent;
   expect(text).toContain("No projects in /Users/me/.driver.");

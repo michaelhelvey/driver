@@ -1,12 +1,19 @@
 import { createStore } from "solid-js";
 
-/** What the user has done to the view: cursors, folds, and the reader. Nothing here is a file. */
+/** The dialog over the page, if any. Only one is open at a time. */
+export type Overlay = "none" | "help" | "palette";
+
+/** What the user has done to the view: cursors, folds, the filter, and the reader. Nothing here is a file. */
 export type ViewState = {
   /** The cursor row key of each project, by slug, once the user moved it. */
   cursors: Record<string, string>;
-  /** Phases whose fold the user flipped from its default, by `<slug>/<phase id>`. */
-  flipped: Record<string, boolean>;
+  /** Phases the user folded (`true`) or unfolded (`false`), by `<slug>/<phase id>`. Others keep their default. */
+  folds: Record<string, boolean>;
   reader: { open: boolean; raw: boolean };
+  /** The task filter of the open project. `editing` while its field has focus. */
+  filter: { query: string; editing: boolean };
+  overlay: Overlay;
+  sidebar: boolean;
 };
 
 /** The view's state and the only ways to change it. */
@@ -14,13 +21,20 @@ export type View = {
   state: ViewState;
   /** Moves the cursor of a project. */
   setCursor: (slug: string, key: string) => void;
-  /** Folds an unfolded phase, or unfolds a folded one. */
-  flipFold: (slug: string, phaseId: string) => void;
+  /** Folds or unfolds a phase. */
+  setFold: (slug: string, phaseId: string, folded: boolean) => void;
   /** Opens the reader on a row, or closes it when it already shows that row. */
   activate: (slug: string, key: string) => void;
+  /** Moves the cursor of a project to a row and opens the reader on it. */
+  open: (slug: string, key: string) => void;
   /** Switches between the raw file and the rendered one, and opens the reader. */
   toggleRaw: () => void;
   closeReader: () => void;
+  setQuery: (query: string) => void;
+  setEditing: (editing: boolean) => void;
+  clearFilter: () => void;
+  setOverlay: (overlay: Overlay) => void;
+  toggleSidebar: () => void;
 };
 
 /**
@@ -35,8 +49,11 @@ export type View = {
 export function createView(cursorKey: () => string | undefined): View {
   const [state, setState] = createStore<ViewState>({
     cursors: {},
-    flipped: {},
+    folds: {},
     reader: { open: false, raw: false },
+    filter: { query: "", editing: false },
+    overlay: "none",
+    sidebar: true,
   });
   return {
     state,
@@ -44,13 +61,18 @@ export function createView(cursorKey: () => string | undefined): View {
       setState((draft) => {
         draft.cursors[slug] = key;
       }),
-    flipFold: (slug, phaseId) =>
+    setFold: (slug, phaseId, folded) =>
       setState((draft) => {
-        draft.flipped[`${slug}/${phaseId}`] = !draft.flipped[`${slug}/${phaseId}`];
+        draft.folds[`${slug}/${phaseId}`] = folded;
       }),
     activate: (slug, key) =>
       setState((draft) => {
         draft.reader.open = !(draft.reader.open && key === cursorKey());
+        draft.cursors[slug] = key;
+      }),
+    open: (slug, key) =>
+      setState((draft) => {
+        draft.reader.open = true;
         draft.cursors[slug] = key;
       }),
     toggleRaw: () =>
@@ -61,6 +83,27 @@ export function createView(cursorKey: () => string | undefined): View {
     closeReader: () =>
       setState((draft) => {
         draft.reader.open = false;
+      }),
+    setQuery: (query) =>
+      setState((draft) => {
+        draft.filter.query = query;
+      }),
+    setEditing: (editing) =>
+      setState((draft) => {
+        draft.filter.editing = editing;
+      }),
+    clearFilter: () =>
+      setState((draft) => {
+        draft.filter.query = "";
+        draft.filter.editing = false;
+      }),
+    setOverlay: (overlay) =>
+      setState((draft) => {
+        draft.overlay = overlay;
+      }),
+    toggleSidebar: () =>
+      setState((draft) => {
+        draft.sidebar = !draft.sidebar;
       }),
   };
 }

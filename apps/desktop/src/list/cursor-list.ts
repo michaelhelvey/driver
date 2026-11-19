@@ -109,6 +109,7 @@ export const cursorList = definePrimitive({
           event.preventDefault();
           change("cursor", moved.key, { reason: "list-navigation", event });
         } else if (event.key === "Enter") {
+          event.preventDefault();
           activate(key, event);
         }
       },

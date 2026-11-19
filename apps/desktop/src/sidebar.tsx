@@ -101,9 +101,8 @@ export function Sidebar(props: {
         <span class="col-span-full mb-1 truncate text-faint">
           {props.root} · {props.files} files
         </span>
-        <Hint keys="↵">open in the reader</Hint>
-        <Hint keys="r">raw file</Hint>
-        <Hint keys="t">paper / cocoa</Hint>
+        <Hint keys="⌘K">palette</Hint>
+        <Hint keys="?">all keys</Hint>
       </div>
     </aside>
   );

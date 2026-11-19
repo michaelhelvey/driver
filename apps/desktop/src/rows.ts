@@ -50,6 +50,55 @@ export function rowsOf(project: Project): Row[] {
   ];
 }
 
+const searchText = (task: Task): string =>
+  [
+    task.id,
+    task.title,
+    task.status.kind,
+    task.repo ?? "",
+    task.body,
+    task.status.kind === "needs-you" ? task.status.ask : "",
+    task.status.kind === "blocked" ? task.status.on : "",
+  ]
+    .join(" ")
+    .toLowerCase();
+
+/**
+ * Whether a task matches a filter query: its id, title, status, repo, body, ask or what it is
+ * blocked on contains the query, ignoring case. Every task matches the empty query.
+ *
+ * @example
+ * matches(task, "sentry"); // true when "sentry" is in the task's title or notes
+ */
+export function matches(task: Task, query: string): boolean {
+  return searchText(task).includes(query.toLowerCase());
+}
+
+const keeps = (row: Row, query: string, phases: ReadonlySet<string>): boolean => {
+  if (row.kind === "attention" || row.kind === "task") return matches(row.task, query);
+  if (row.kind === "phase") return phases.has(row.phase.id);
+  return row.kind === "project";
+};
+
+/**
+ * The rows a filter query leaves: the project header, the tasks that match (as attention rows
+ * and in their phases), and the header of each phase with a match. The recent log goes. The
+ * empty query leaves every row.
+ *
+ * @example
+ * filterRows(rowsOf(project), "coa").map((row) => row.key);
+ * // ["project", "phase:framework-apps", "task:t4-coa"]
+ */
+export function filterRows(rows: readonly Row[], query: string): Row[] {
+  if (query === "") return [...rows];
+  const phases = new Set(
+    rows.flatMap((row) =>
+      row.kind === "task" && matches(row.task, query) ? [row.task.phase] : [],
+    ),
+  );
+  return rows.filter((row) => keeps(row, query, phases));
+}
+
 /**
  * Whether every task of a phase is `done` or `skipped`. Such a phase starts folded.
  *
