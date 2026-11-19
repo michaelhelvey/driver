@@ -32,6 +32,9 @@ const focusedRow = async () =>
     () => document.activeElement?.closest<HTMLElement>("[data-row]")?.dataset.row ?? null,
   );
 
+const toast = async () =>
+  browser.execute(() => document.querySelector("[aria-label=Notifications]")?.textContent);
+
 before(async () => {
   await mcp.connect(
     new StdioClientTransport({
@@ -206,6 +209,27 @@ describe("driver desktop", () => {
     });
     await browser.keys("k");
     await expect(cursorRow()).toHaveAttribute("data-row", "task:t4-midstream-insights");
+  });
+
+  it("y writes the cursor row's path to the clipboard, which the app cannot read back", async () => {
+    const path = join(
+      await root(),
+      "pdk-2-sentry",
+      "03a-framework-apps",
+      "07-t4-midstream-insights.md",
+    );
+    await browser.keys("y");
+    await browser.waitUntil(async () => (await toast()) === `copied ${path}`, {
+      timeout: 2000,
+      timeoutMsg: `no "copied ${path}" toast after y`,
+    });
+    const read = await browser.execute(async () =>
+      window["__TAURI_INTERNALS__"].invoke("plugin:clipboard-manager|read_text", {}).then(
+        () => "allowed",
+        (error: unknown) => String(error),
+      ),
+    );
+    expect(read).toContain("not allowed");
   });
 
   it("closes the reader when its handle collapses it, so the next activate opens it", async () => {
