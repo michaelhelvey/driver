@@ -173,7 +173,13 @@ export function App(props: { source: FileSource }) {
 
   return (
     <div class="grid h-screen grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_26px]">
-      <Resizable controller={split} class="min-h-0">
+      <Resizable
+        controller={split}
+        class="min-h-0"
+        onLayoutCommit={() => {
+          if (split.isCollapsed("reader")) view.closeReader();
+        }}
+      >
         <ResizablePanel id="sidebar" defaultSize="252px" minSize="252px" maxSize="420px">
           <Sidebar
             entries={projects.list()}
@@ -209,8 +215,7 @@ export function App(props: { source: FileSource }) {
         </ResizablePanel>
         <ResizableHandle
           aria-label="Resize reader"
-          disabled={!shown()}
-          class="relative z-10 -mr-px w-px bg-rule outline-none focus-visible:bg-accent data-disabled:hidden data-dragging:bg-accent"
+          class="relative z-10 -mr-px w-px bg-rule outline-none focus-visible:bg-accent data-dragging:bg-accent has-[+[data-collapsed]]:hidden"
         />
         <ResizablePanel
           id="reader"

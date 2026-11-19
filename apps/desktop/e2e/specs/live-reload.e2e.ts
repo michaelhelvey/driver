@@ -119,4 +119,14 @@ describe("driver desktop", () => {
       raw.replace(/\n$/, ""),
     );
   });
+
+  it("closes the reader when its handle collapses it, so the next activate opens it", async () => {
+    await browser.execute(() =>
+      document.querySelector<HTMLElement>(`[aria-label="Resize reader"]`)?.focus(),
+    );
+    await browser.keys("Enter");
+    await expect($("[aria-label=Reader]")).not.toBeExisting();
+    await $(`main [data-kind="attention"]`).click();
+    await expect($("[aria-label=Reader]")).toBeExisting();
+  });
 });
