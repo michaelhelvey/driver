@@ -1,6 +1,7 @@
 # apps/desktop
 
-The read-only Tauri v2 app. See [`docs/plan.md`](../../docs/plan.md) for what it is.
+The read-only Tauri v2 app. See [`docs/plan.md`](../../docs/plan.md) for what it is, and the
+[root README](../../README.md) to build and install it.
 
 ## Run it
 
