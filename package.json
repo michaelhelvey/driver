@@ -12,8 +12,9 @@
     "lint": "vp lint --fix",
     "check": "vp check",
     "e2e:desktop": "bun run --cwd apps/desktop e2e",
+    "e2e:web": "bun run --cwd apps/desktop e2e:web",
     "test": "bun test ./packages && bun run --cwd apps/desktop test",
-    "validate": "vp check && bun run test"
+    "validate": "vp check && bun run test && bun run e2e:web"
   },
   "devDependencies": {
     "@michaelhelvey/vite-config": "2.0.8",

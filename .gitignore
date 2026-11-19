@@ -42,3 +42,7 @@ apps/desktop/parity
 # tauri
 apps/desktop/src-tauri/target
 apps/desktop/src-tauri/gen
+
+# playwright (apps/desktop e2e:web)
+apps/desktop/test-results
+apps/desktop/playwright-report
