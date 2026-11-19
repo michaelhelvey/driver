@@ -198,7 +198,7 @@ export function createNavigation(deps: NavigationDeps): Navigation {
       const entry = deps.entries()[index];
       if (entry !== undefined) selectProject(entry.slug);
     },
-    palette: () => view.setOverlay(view.state.overlay === "palette" ? "none" : "palette"),
+    palette: () => view.setOverlay("palette"),
     projectFile: () => openRow("project"),
     logFile,
     toggleReader: () => {

@@ -122,6 +122,7 @@ test("drives every key of the sheet with no mouse", async ({ page }) => {
     await expect(row(page, "task:ssm-alias")).toBeHidden();
     await keys(page, " ");
     await expect(row(page, "task:ssm-alias")).toBeVisible();
+    await expect(reader(page)).toHaveCount(0);
   });
 
   await test.step("/ filters: phases without a match hide, folds are ignored, esc clears", async () => {
@@ -204,6 +205,11 @@ test("drives every key of the sheet with no mouse", async ({ page }) => {
     await page.keyboard.type("zz");
     await expect(page.getByText("nothing matches. it's not in a file anywhere.")).toBeVisible();
     await keys(page, "Escape");
+    await expect(mode(page)).toHaveText("NORMAL");
+    await expectCursor(page, "task:t4-coa");
+    await openPalette(page);
+    await keys(page, "Meta+k");
+    await expect(page.getByRole("dialog", { name: "palette" })).toHaveCount(0);
     await expect(mode(page)).toHaveText("NORMAL");
     await expectCursor(page, "task:t4-coa");
   });

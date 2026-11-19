@@ -13,6 +13,7 @@ import {
   type CommandDataGroup,
 } from "@ui-sdk/solid/command";
 import { createEffect, createMemo, For } from "solid-js";
+import { chordOf } from "./keymap.ts";
 import { Overlay } from "./overlay.tsx";
 import type { Entry } from "./projects.ts";
 import { STATUS } from "./status.ts";
@@ -93,6 +94,8 @@ const commandItems = (commands: readonly PaletteCommand[]): Item[] =>
   }));
 
 const needsYou = (task: Task) => task.status.kind === "needs-you";
+
+const CLOSES = new Set(["Escape", "mod+k"]);
 
 function PaletteItem(props: { item: Item }) {
   return (
@@ -184,7 +187,7 @@ function Search(props: PaletteProps) {
           spellcheck="false"
           autocomplete="off"
           onKeyDown={(event) => {
-            if (event.key === "Escape") props.onClose();
+            if (CLOSES.has(chordOf(event))) props.onClose();
           }}
           class="flex-1 bg-transparent text-[14px] text-ink caret-accent outline-none placeholder:text-faint"
         />
@@ -218,9 +221,9 @@ function Search(props: PaletteProps) {
 
 /**
  * The command palette (`⌘K`): what needs the user in every project, the projects, every task
- * once something is typed, and the commands, searched fuzzily. Choosing one closes the palette,
- * then jumps or runs it. Each open starts with an empty search, even when it reopens while the
- * last one is still closing.
+ * once something is typed, and the commands, searched fuzzily. Escape or `⌘K` again closes it, as
+ * in the mockup. Choosing one closes the palette, then jumps or runs it. Each open starts with an
+ * empty search, even when it reopens while the last one is still closing.
  *
  * @example
  * <Palette open={open()} entries={projects.list()} … onTask={jumpTo} onProject={select} />
