@@ -8,7 +8,7 @@ terminal.
 
 ```mermaid
 flowchart LR
-  you([you]) -- prompts --> coord[coordinator agent<br/>OpenCode / Claude Code]
+  you([you]) -- prompts --> coord[coordinator agent<br/>OpenCode]
   coord -- "MCP: create_project, apply" --> mcp[driver MCP server<br/>packages/mcp, stdio]
   mcp -- "writes (the only writer)" --> files[("~/.driver/slug/*.md")]
   files -- fs watch --> app[driver.app<br/>read-only]
@@ -19,39 +19,51 @@ The full design (file format, write protocol, milestones) is [`docs/plan.md`](do
 
 ## Quickstart
 
+Needs macOS, [bun](https://bun.sh) 1.4+, a Rust toolchain (`rustup`), the Xcode command line tools,
+and [OpenCode](https://opencode.ai).
+
 ```sh
-cd /Users/michaelhelvey/dev/helvetici/driver
+git clone <this repo> driver && cd driver && bun run setup
+```
+
+Then open driver, and in any project tell your coordinator:
+
+> track this in driver
+
+`bun run setup` builds `driver.app` into `/Applications` (quitting and restarting it if it is
+running), creates `~/.driver`, and registers the MCP server in OpenCode's global config, pointing at
+this checkout. Rerun it after you pull, or after you move the checkout: it upgrades the app and
+fixes the registered path, and changes nothing that is already right. `bun run setup --no-app` only
+registers the MCP server. The first build takes a couple of minutes (Rust).
+
+The MCP server sends its habits (how to start a project, `get_project` before every `apply`, one
+`apply` per event, `needs-you` when stuck) as its `instructions`, which OpenCode puts in the
+coordinator's system prompt, so a project needs no `AGENTS.md` snippet. The text is
+`DRIVER_INSTRUCTIONS` in [`packages/core/src/tools.ts`](packages/core/src/tools.ts).
+
+<details>
+<summary>Manual setup</summary>
+
+What `bun run setup` does, by hand, from the checkout:
+
+```sh
 bun install
 bun --cwd apps/desktop tauri build
 cp -R apps/desktop/src-tauri/target/release/bundle/macos/driver.app /Applications/
 mkdir -p ~/.driver
-claude mcp add --scope user driver -- bun /Users/michaelhelvey/dev/helvetici/driver/packages/mcp/src/main.ts
+opencode mcp add driver --global -- "$(which bun)" "$PWD/packages/mcp/src/main.ts"
 ```
 
-Then add the OpenCode entry from [Hook it up to agents](#hook-it-up-to-agents), paste
-[the AGENTS.md snippet](#the-agentsmd-snippet) into a project, open driver, and ask the coordinator
-to set up a driver project. Change `/Users/michaelhelvey/dev/helvetici/driver` everywhere if your
-checkout lives somewhere else.
+That writes this entry under `mcp.servers` in `~/.config/opencode/opencode.json(c)`:
 
-## Install
-
-Prerequisites: macOS, [bun](https://bun.sh) 1.4+, and a Rust toolchain (`rustup`, stable) for Tauri.
-Xcode command line tools must be installed (`xcode-select --install`).
-
-```sh
-bun install
-bun --cwd apps/desktop tauri build
+```json
+{ "driver": { "type": "local", "command": ["/abs/bun", "/abs/driver/packages/mcp/src/main.ts"] } }
 ```
 
-The first build takes a couple of minutes (Rust) and writes
-`apps/desktop/src-tauri/target/release/bundle/macos/driver.app` (about 12 MiB, ad-hoc signed). Copy
-it to `/Applications`:
+Check it with `opencode mcp list`. With OpenCode's default Code Mode, agents call the tools as
+`tools.driver.apply(...)`.
 
-```sh
-cp -R apps/desktop/src-tauri/target/release/bundle/macos/driver.app /Applications/
-```
-
-Rebuild and copy again after you pull.
+</details>
 
 ### `DRIVER_ROOT`
 
@@ -62,68 +74,12 @@ Both the MCP server and the app read projects from `DRIVER_ROOT`, default `~/.dr
 - The MCP server creates the folder if it is missing. The app does not: if `~/.driver` did not exist
   when the app started, it shows nothing and watches nothing until you restart it. Run
   `mkdir -p ~/.driver` before the first launch.
-- To point both at another folder, set `DRIVER_ROOT` in the MCP server's `env` / `environment`
-  entry, and launch the app with `open -a driver --env DRIVER_ROOT=/abs/path`. An app opened from
-  Finder or Spotlight does not see your shell's env, so it always uses `~/.driver`.
+- To point both at another folder, add `"environment": { "DRIVER_ROOT": "/abs/path" }` to the
+  `driver` entry in OpenCode's config (`bun run setup` keeps it when it re-registers), and launch
+  the app with `open -a driver --env DRIVER_ROOT=/abs/path`. An app opened from Finder or Spotlight
+  does not see your shell's env, so it always uses `~/.driver`.
 
-## Hook it up to agents
-
-Register the MCP server once, globally. Every harness spawns it with `bun` and the absolute path to
-this checkout's `packages/mcp/src/main.ts`. It needs no env when you use `~/.driver`.
-
-### OpenCode
-
-Add a `driver` entry under `mcp.servers` in `~/.config/opencode/opencode.json` (OpenCode V2 puts
-servers under `mcp.servers`, not directly under `mcp`):
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "servers": {
-      "driver": {
-        "type": "local",
-        "command": ["bun", "/Users/michaelhelvey/dev/helvetici/driver/packages/mcp/src/main.ts"]
-      }
-    }
-  }
-}
-```
-
-or let the CLI write it:
-
-```sh
-opencode mcp add driver --global -- bun /Users/michaelhelvey/dev/helvetici/driver/packages/mcp/src/main.ts
-```
-
-To use another root, add `"environment": { "DRIVER_ROOT": "/abs/path" }` to the entry. Check it with
-`opencode mcp list`. With OpenCode's default Code Mode, agents call the tools as
-`tools.driver.apply(...)`.
-
-### Claude Code
-
-```sh
-claude mcp add --scope user driver -- bun /Users/michaelhelvey/dev/helvetici/driver/packages/mcp/src/main.ts
-```
-
-Add `-e DRIVER_ROOT=/abs/path` after `driver` for another root. Check it with `claude mcp list`.
-
-The same server as a checked-in `.mcp.json` (project scope, for sharing with a repo):
-
-```json
-{
-  "mcpServers": {
-    "driver": {
-      "type": "stdio",
-      "command": "bun",
-      "args": ["/Users/michaelhelvey/dev/helvetici/driver/packages/mcp/src/main.ts"],
-      "env": {}
-    }
-  }
-}
-```
-
-### The tools
+## The tools
 
 | tool             | what the agent sees (abridged)                                                                                           |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -136,54 +92,18 @@ The same server as a checked-in `.mcp.json` (project scope, for sharing with a r
 
 The full descriptions live in the zod schemas' `.describe()` text in
 [`packages/core/src/tools.ts`](packages/core/src/tools.ts) and
-[`packages/core/src/schemas.ts`](packages/core/src/schemas.ts). That text is what agents read, so it
-is the source of truth for every rule below.
+[`packages/core/src/schemas.ts`](packages/core/src/schemas.ts), and the habits in
+`DRIVER_INSTRUCTIONS` in [`packages/core/src/tools.ts`](packages/core/src/tools.ts). That text is
+what agents read, so it is the source of truth for every rule below.
 
 ## Using it in a project
 
-The tool descriptions already carry the file contract, so a project only needs to tell its
-coordinator _that_ it should keep a driver project, and which habits to keep.
+"track this in driver" is enough: the coordinator makes a project named after the repo directory and
+fills in phases and tasks from the conversation. Say more when you want a particular shape:
 
-### The AGENTS.md snippet
-
-Paste this into the project's `AGENTS.md` (OpenCode) or `CLAUDE.md` (Claude Code):
-
-```md
-## driver
-
-Track this work as a driver project through the `driver` MCP server. The user watches it in the
-driver app and never edits the files; you are the only writer.
-
-- Once, at the start: `create_project` with `slug`, `title`, `repo` (this repo's path), and a
-  `summary` of what the project is and where it stands. Then add phases and tasks with `apply`.
-- Call `get_project` before every `apply`, so your changes are based on the current state.
-- One `apply` per meaningful event (a PR opened or merged, a deploy, a verification, a question for
-  the user), with every change in that one call. `log` is one or two sentences saying what happened
-  and the evidence for it ("t4-coa merged as #52; beta deploy 4415 is green"). Describe what
-  happened, not what you plan to do.
-- Statuses: `{ kind: "todo" }`, `{ kind: "doing" }`, `{ kind: "done" }`,
-  `{ kind: "needs-you", ask }` (one line saying exactly what you need from the user),
-  `{ kind: "blocked", on, by? }` (`on` is what it waits for, `by` the id of a blocking task),
-  `{ kind: "skipped", why }`.
-- There is no `broken` status. If your own work fails (a build breaks, a deploy fails, you are
-  stuck), set `needs-you` with the error as the `ask`. Do not leave it `doing`: that hides the
-  failure from the user.
-- There is no delete: mark work that's no longer needed as `skipped` and give a reason.
-- Put notes, verification steps, and a checklist in each task's `body`; `- [ ]` / `- [x]` lines are
-  counted as the task's steps. `body` replaces the whole body, so `read` the task first and send it
-  back whole.
-- Ids are lowercase slugs (`t4-coa`, `framework-apps`); `project` and `log` are reserved. Never type
-  position labels like `03a.1`: `apply` numbers files for you.
-```
-
-### The first prompt
-
-With the snippet in place, open the coordinator in the repo and say something like:
-
-> set up a driver project for the sentry rollout: slug `pdk-2-sentry`. phases: `pdk-2.0` (bump the
-> pdk and verify on beta), `canaries` (two canary lambdas, verified in Sentry), `rollout` (one task
-> per remaining lambda). give each task a checklist of verification steps. then start on the first
-> task.
+> track this in driver as `pdk-2-sentry`. phases: `pdk-2.0` (bump the pdk and verify on beta),
+> `canaries` (two canary lambdas, verified in Sentry), `rollout` (one task per remaining lambda).
+> give each task a checklist of verification steps. then start on the first task.
 
 The coordinator should answer with one `create_project` and one `apply` that creates the phases and
 tasks. A typical `apply` after that:
@@ -313,6 +233,7 @@ spec is in [`docs/plan.md`](docs/plan.md#file-layout). Real examples are in
 | the app on the fixtures                     | `DRIVER_ROOT=$PWD/packages/core/fixtures bun --cwd apps/desktop tauri dev` |
 | real-window e2e (builds Rust)               | `bun run e2e:desktop`                                                      |
 | run the MCP server by hand                  | `bun packages/mcp/src/main.ts`                                             |
+| `bun run setup` on a temp HOME (builds)     | `bun scripts/setup-e2e.ts` (`--no-app` skips the build)                    |
 
 - `packages/core`: schemas, `parseProject`, `planApply`, and the tool descriptions. Pure TS; the
   only module that knows the file format.
@@ -344,10 +265,11 @@ Every verification lever, and the steps to accept a change by hand, are in
 - **The app is empty but the folder has projects.** The folder did not exist when the app started:
   restart the app. Or the app and the MCP server use different roots: the app shows its root in the
   sidebar footer and the status line.
-- **The agent doesn't see the tools.** Run `opencode mcp list` or `claude mcp list`. Start the
-  server by hand to see startup errors:
-  `bun /Users/michaelhelvey/dev/helvetici/driver/packages/mcp/src/main.ts` prints
+- **The agent doesn't see the tools.** Rerun `bun run setup --no-app`, then `opencode mcp list`.
+  Start the server by hand to see startup errors: `bun packages/mcp/src/main.ts` prints
   `{"started":"/Users/you/.driver"}` to stderr and then waits on stdin.
+- **`bun run setup` fails.** The `✗` line says what failed and the `fix:` line under it what to run.
+  Fix it and rerun; every step is safe to repeat.
 - **What did the server do?** It logs each tool call to stderr as one JSON line:
   `{"tool":"apply","project":"pdk-2-sentry","ops":1,"ms":12,"error":null}`. stdout carries only MCP
   messages. Your harness keeps the server's stderr in its MCP logs.

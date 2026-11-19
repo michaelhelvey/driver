@@ -21,9 +21,10 @@ Delete the file if no other `apply` is running.
 
 ## Register it
 
-See [Hook it up to agents](../../README.md#hook-it-up-to-agents) in the root README for OpenCode and
-Claude Code, and [Using it in a project](../../README.md#using-it-in-a-project) for the `AGENTS.md`
-snippet.
+`bun run setup` in the repo root registers it in OpenCode (see the root
+[Quickstart](../../README.md#quickstart)). The server sends `DRIVER_INSTRUCTIONS` from
+`@driver/core` as its `initialize` `instructions`, which OpenCode adds to the system prompt, so
+projects need no `AGENTS.md` snippet.
 
 ## Tests
 

@@ -54,8 +54,34 @@ the MCP client SDK against a temp copy of the fixtures, calls every tool, assert
 and a re-parse, and runs two `apply` calls at once. It is part of `bun run test`; run it alone after
 a change to `packages/mcp` or the tool descriptions in `packages/core/src/tools.ts`.
 
+It also asserts the `initialize` result's `instructions` are `DRIVER_INSTRUCTIONS` from
+`packages/core/src/tools.ts`: the coordinator's habits and "track this in driver", which OpenCode
+puts in the system prompt (https://opencode.ai/docs/mcp-servers, "Server instructions").
+
 By hand: `DRIVER_ROOT=$(mktemp -d) bun packages/mcp/src/main.ts` prints `{"started":"…"}` to stderr
 and waits for MCP messages on stdin. Each tool call logs one JSON line to stderr.
+
+## `bun run setup`
+
+`scripts/setup.ts` builds and installs `driver.app`, makes `~/.driver`, and registers the MCP server
+in OpenCode's global config. Never run it against the real machine to test it. Run its lever
+instead, after any change to `scripts/setup.ts` or `scripts/opencode.ts`:
+
+```sh
+bun scripts/setup-e2e.ts            # builds the app (about 2 min warm)
+bun scripts/setup-e2e.ts --no-app   # MCP registration only, seconds
+```
+
+It points `HOME`, `XDG_*_HOME` and `DRIVER_APPLICATIONS_DIR` at a temp dir, seeds an OpenCode config
+with a comment and an unrelated server, then runs setup: twice (the second run must leave the config
+byte-identical and unwritten), once after pointing `driver` at a stale checkout path with an
+`environment` (must re-register this checkout and keep the environment), and once more with
+`--no-app` (unchanged again). It prints the resulting config, then starts the server exactly as the
+config says with the MCP client SDK and asserts `instructions` and `list_projects`. The "decide
+whether to re-register" logic is table-tested in `scripts/opencode.test.ts` (part of
+`bun run test`). It does not cover quitting and restarting a running app; to check that, start
+`<temp>/Applications/driver.app/Contents/MacOS/driver-desktop`, run setup with
+`DRIVER_APPLICATIONS_DIR=<temp>/Applications`, and see `(restarted it)` and a new pid.
 
 ## Browser dev build
 
@@ -95,8 +121,9 @@ DRIVER_ROOT=$root bun --cwd apps/desktop tauri dev
    rows and one blocked row.
 2. Press `j` then `↵`: the reader opens on `t4-authorization-platform`. Press `r`: the raw file,
    exactly as on disk. Press `r` again for the rendered view.
-3. Point a coordinator's `driver` MCP server at the same root (`DRIVER_ROOT=$root`) and ask it to
-   mark `t4-agent-skills` done. The row turns sage and the headline goes to `37%` without a reload.
+3. Point a coordinator's `driver` MCP server at the same root (add
+   `"environment": { "DRIVER_ROOT": "<root>" }` to its OpenCode entry) and ask it to mark
+   `t4-agent-skills` done. The row turns sage and the headline goes to `37%` without a reload.
 4. Press `y`, then `c`, pasting after each: the cursor row's absolute path, then
    `re <id> (<title>): <path>` for the same row. Each shows a toast.
 5. Press `?`: the keys sheet. Every key on it works; `esc` closes it.

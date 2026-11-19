@@ -286,7 +286,9 @@ cannot disagree.
 - A small fs adapter (read tree, lock, write temp, rename) passed in to the tool handlers. Tests
   pass a temp directory; no module mocks.
 - Log every tool call to stderr as one JSON line (tool, project, op count, ms, error).
-- Register it in the coordinator's harness config (OpenCode / Claude Code `mcp` entry).
+- `bun run setup` (`scripts/setup.ts`) registers it in OpenCode's global config. Its habits for the
+  coordinator are the server's `instructions` (`DRIVER_INSTRUCTIONS` in `packages/core`), so a
+  project needs no `AGENTS.md` snippet.
 
 ### `apps/desktop`
 
