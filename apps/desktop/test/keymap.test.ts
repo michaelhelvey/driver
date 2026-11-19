@@ -46,6 +46,9 @@ const pressAll = (target: string, presses: KeyboardEventInit[]) => {
 
 const press = (target: string, init: KeyboardEventInit) => pressAll(target, [init]).ran;
 
+const pressOn = (target: Element | null, key: string) =>
+  target?.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+
 describe("bindKeymap", () => {
   it.each([
     ["body", { key: "t" }, ["t"]],
@@ -100,6 +103,33 @@ describe("bindKeymap", () => {
     );
     expect(result).toEqual({ ran, pending });
   });
+
+  it.each([
+    ["widget", "j"],
+    ["input", "j"],
+    ["dialog", "j"],
+    ["control", "Enter"],
+  ])(
+    "ends a pending g when the next press goes to a %s instead, so g g needs two more g",
+    (at, key) => {
+      document.body.innerHTML = `<div data-at="widget" tabindex="0"></div><input data-at="input"><div role="dialog"><i data-at="dialog"></i></div><button data-at="control"></button>`;
+      document
+        .querySelector("[data-at=widget]")
+        ?.addEventListener("keydown", (event) => event.preventDefault());
+      const ran: string[] = [];
+      const pending: (string | null)[] = [];
+      const stop = bindKeymap(
+        document,
+        () => KEYMAP(ran),
+        (chord) => pending.push(chord),
+      );
+      pressOn(document.body, "g");
+      pressOn(document.querySelector(`[data-at=${at}]`), key);
+      pressOn(document.body, "g");
+      stop();
+      expect({ ran, pending }).toEqual({ ran: [], pending: ["g", null, "g"] });
+    },
+  );
 
   it("skips keys a widget already handled", () => {
     document.body.innerHTML = "<button>b</button>";

@@ -73,8 +73,8 @@ export type KeyReader = (event: KeyboardEvent) => boolean;
  * A press runs its binding unless something already handled it, it happened in a dialog, it is
  * Enter or Space on a control that those keys press (a button, a link, a resize handle), or it
  * is typing (only `mod+` chords run in text inputs). After the first chord of a sequence, the
- * next press runs the sequence if there is one, else its own binding. Returns whether a binding
- * ran or a sequence started.
+ * next press runs the sequence if there is one, else its own binding; a press the keymap skips
+ * ends the sequence. Returns whether a binding ran or a sequence started.
  *
  * @example
  * const read = createKeyReader(() => ({ "g g": top, G: bottom }));
@@ -91,7 +91,10 @@ export function createKeyReader(
   };
   return (event) => {
     const chord = chordOf(event);
-    if (ignores(event, chord)) return false;
+    if (ignores(event, chord)) {
+      settle(null);
+      return false;
+    }
     const map = keymap();
     const run = lookup(map, pending, chord);
     settle(pendingAfter(map, run, chord));
