@@ -328,6 +328,8 @@ spec is in [`docs/plan.md`](docs/plan.md#file-layout). Real examples are in
 the browser build in the installed Google Chrome (Playwright's `channel: "chrome"`), so Chrome must
 be installed. `bun run e2e:desktop` is not part of it, because it builds the Rust side; it also
 writes to the real system clipboard (the `y` and `c` checks), so expect your clipboard to change.
+Every verification lever, and the steps to accept a change by hand, are in
+[`.agents/skills/verify-driver/SKILL.md`](.agents/skills/verify-driver/SKILL.md).
 
 ## Troubleshooting
 

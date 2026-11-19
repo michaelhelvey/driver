@@ -7,6 +7,10 @@
 
 - Always validate your work via all relevant checks (`bun run validate`) before declaring your work
   done.
+- Every verification lever (what `validate` runs, the real-window e2e, the MCP stdio e2e, the dev
+  builds, the icon script, and the user acceptance steps) is in the project skill
+  [`.agents/skills/verify-driver/SKILL.md`](.agents/skills/verify-driver/SKILL.md). Read it before
+  you verify a change or write verification steps for the user.
 
 ## Project
 
