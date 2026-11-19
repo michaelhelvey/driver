@@ -2,6 +2,12 @@ import { readFile, realpath, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { $, browser, expect } from "@wdio/globals";
 
+declare global {
+  interface Window {
+    __TAURI_INTERNALS__: { invoke: (cmd: string, args: unknown) => Promise<unknown> };
+  }
+}
+
 const SKILLS = join("pdk-2-sentry", "01-framework", "02-t4-agent-skills.md");
 
 const root = async () => realpath(process.env["DRIVER_ROOT"] ?? "DRIVER_ROOT is not set");
@@ -17,6 +23,28 @@ const markDone = async (path: string) => {
 describe("driver desktop", () => {
   it("reads the projects under DRIVER_ROOT", async () => {
     await expect($("aside")).toHaveText(expect.stringContaining(await root()));
+  });
+
+  it("reads only inside DRIVER_ROOT, and writes nowhere", async () => {
+    const dir = await root();
+    const calls: { cmd: string; path: string }[] = [
+      { cmd: "plugin:fs|read_dir", path: dir },
+      { cmd: "plugin:fs|read_dir", path: join(dir, "..") },
+      { cmd: "plugin:fs|mkdir", path: join(dir, "e2e-mkdir") },
+    ];
+    const results = await browser.execute(
+      async (attempts) =>
+        Promise.all(
+          attempts.map(({ cmd, path }) =>
+            window["__TAURI_INTERNALS__"].invoke(cmd, { path }).then(
+              () => "allowed",
+              () => "denied",
+            ),
+          ),
+        ),
+      calls,
+    );
+    expect(results).toEqual(["allowed", "denied", "denied"]);
   });
 
   it("shows pdk-2-sentry at 33%", async () => {

@@ -1,26 +1,14 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Read-only access to the projects root, with file watching.",
+  "description": "Read-only fs commands, with file watching. They carry no paths: lib.rs scopes them at startup to the one projects root (DRIVER_ROOT, else $HOME/.driver).",
   "windows": ["main"],
   "permissions": [
     "core:default",
-    {
-      "identifier": "fs:allow-read-dir",
-      "allow": [{ "path": "$HOME/.driver" }, { "path": "$HOME/.driver/**" }]
-    },
-    {
-      "identifier": "fs:allow-read-text-file",
-      "allow": [{ "path": "$HOME/.driver/**" }]
-    },
-    {
-      "identifier": "fs:allow-exists",
-      "allow": [{ "path": "$HOME/.driver" }]
-    },
-    {
-      "identifier": "fs:allow-watch",
-      "allow": [{ "path": "$HOME/.driver" }, { "path": "$HOME/.driver/**" }]
-    },
+    "fs:allow-read-dir",
+    "fs:allow-read-text-file",
+    "fs:allow-exists",
+    "fs:allow-watch",
     "fs:allow-unwatch"
   ]
 }
