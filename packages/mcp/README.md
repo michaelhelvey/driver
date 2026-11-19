@@ -21,41 +21,9 @@ Delete the file if no other `apply` is running.
 
 ## Register it
 
-Use the absolute path to this checkout.
-
-OpenCode (`opencode.json`):
-
-```json
-{
-  "mcp": {
-    "driver": {
-      "type": "local",
-      "command": ["bun", "/abs/path/to/driver/packages/mcp/src/main.ts"],
-      "environment": { "DRIVER_ROOT": "/Users/you/.driver" }
-    }
-  }
-}
-```
-
-Claude Code:
-
-```sh
-claude mcp add driver -e DRIVER_ROOT="$HOME/.driver" -- bun /abs/path/to/driver/packages/mcp/src/main.ts
-```
-
-or in `.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "driver": {
-      "command": "bun",
-      "args": ["/abs/path/to/driver/packages/mcp/src/main.ts"],
-      "env": { "DRIVER_ROOT": "/Users/you/.driver" }
-    }
-  }
-}
-```
+See [Hook it up to agents](../../README.md#hook-it-up-to-agents) in the root README for OpenCode and
+Claude Code, and [Using it in a project](../../README.md#using-it-in-a-project) for the `AGENTS.md`
+snippet.
 
 ## Tests
 
