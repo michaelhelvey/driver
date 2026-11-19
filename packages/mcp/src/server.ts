@@ -3,6 +3,7 @@ import {
   ApplyToolInputSchema,
   CreateProjectInputSchema,
   CreateProjectOutputSchema,
+  DRIVER_INSTRUCTIONS,
   GetProjectInputSchema,
   GetProjectOutputSchema,
   ListProjectsInputSchema,
@@ -162,7 +163,10 @@ const callTool = async (disk: Disk, name: string, args: unknown): Promise<CallTo
  * await server.connect(new StdioServerTransport());
  */
 export function createServer(disk: Disk): Server {
-  const server = new Server({ name: "driver", version: "0.1.0" }, { capabilities: { tools: {} } });
+  const server = new Server(
+    { name: "driver", version: "0.1.0" },
+    { capabilities: { tools: {} }, instructions: DRIVER_INSTRUCTIONS },
+  );
   server.setRequestHandler(ListToolsRequestSchema, () => ({ tools: LISTING }));
   server.setRequestHandler(CallToolRequestSchema, (request) =>
     callTool(disk, request.params.name, request.params.arguments),

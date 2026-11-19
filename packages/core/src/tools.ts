@@ -36,6 +36,35 @@ const STATUS_CONTRACT = [
 ].join("\n\n");
 
 /**
+ * The MCP server's `instructions`, sent in the `initialize` result. Harnesses put it in the
+ * coordinator's system prompt, so a project needs no `AGENTS.md` snippet: "track this in driver"
+ * is enough.
+ *
+ * @example
+ * new Server({ name: "driver", version: "0.1.0" }, { capabilities: { tools: {} }, instructions: DRIVER_INSTRUCTIONS });
+ */
+export const DRIVER_INSTRUCTIONS = [
+  "driver keeps the user's projects as markdown files under `~/.driver/`, which the user watches in the driver desktop app. You are the only writer: the user never edits the files, so the app is only as current as your `apply` calls.",
+  [
+    'When the user says "track this in driver" (or "set up a driver project"):',
+    "1. Call `list_projects`. If this work already has a project, use it: call `get_project` and carry on from there.",
+    "2. Otherwise call `create_project` with `slug` = the repo directory's name as a lowercase slug (unless the user names one), `title`, `repo` = the repo's absolute path, and a `summary` of what the project is and where it stands.",
+    "3. Then one `apply` with the phases and tasks from the conversation so far: what is done, what is in progress, what is next. Give each task a `- [ ]` checklist of verification steps in its `body`.",
+    "4. Tell the user the slug.",
+  ].join("\n"),
+  [
+    "While you work:",
+    "- Call `get_project` before every `apply`, so your changes are based on the current state.",
+    '- One `apply` per meaningful event (a PR opened or merged, a deploy, a verification, a question for the user), with every change in that one call. `log` is one or two sentences saying what happened and the evidence for it ("t4-coa merged as #52; beta deploy 4415 is green"), not what you plan to do.',
+    '- When you need something from the user, set the task to `{ kind: "needs-you", ask }` with one line saying exactly what you need. If your own work fails (a build breaks, a deploy fails, you are stuck), do the same with the error as the `ask`; never leave a failing task `doing`.',
+    "- There is no delete: mark work that's no longer needed `skipped` with a reason.",
+    "- `body` replaces the whole body, so `read` the task first and send it back whole.",
+    "- Ids are lowercase slugs (`t4-coa`, `framework-apps`); `project` and `log` are reserved. Never type position labels like `03a.1`: `apply` numbers files for you.",
+    "- When the user asks what's waiting on them, call `needs_me`.",
+  ].join("\n"),
+].join("\n\n");
+
+/**
  * Input of `list_projects`. Its description is the tool description.
  *
  * @example

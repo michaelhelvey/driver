@@ -7,6 +7,7 @@ import {
   ApplyToolInputSchema,
   CreateProjectInputSchema,
   CreateProjectOutputSchema,
+  DRIVER_INSTRUCTIONS,
   GetProjectInputSchema,
   GetProjectOutputSchema,
   ListProjectsInputSchema,
@@ -123,6 +124,10 @@ afterEach(async () => {
 });
 
 describe("driver MCP server over stdio", () => {
+  it("sends core's instructions in the initialize result", () => {
+    expect(client.getInstructions()).toBe(DRIVER_INSTRUCTIONS);
+  });
+
   it("lists the six tools with core's descriptions", async () => {
     const { tools } = await client.listTools();
     expect(Object.fromEntries(tools.map((tool) => [tool.name, tool.description]))).toEqual({
