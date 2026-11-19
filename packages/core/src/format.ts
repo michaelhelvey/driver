@@ -59,6 +59,23 @@ export function readDoc<S extends z.ZodType>(
   return { data: parseAt(path, schema, readYaml(path, yaml ?? "")), body: String(body).trim() };
 }
 
+const AnyFrontmatterSchema = z.record(z.string(), z.unknown());
+
+/**
+ * Splits any file of a project into its frontmatter, as plain data in file order, and its trimmed
+ * body. For showing a file as it is; use the file's own schema to read its fields.
+ *
+ * @example
+ * readFrontmatter("01-a/01-b.md", "---\ntitle: b\npr: \"#2\"\n---\n\nNote.\n");
+ * // { data: { title: "b", pr: "#2" }, body: "Note." }
+ */
+export function readFrontmatter(
+  path: string,
+  text: string,
+): { data: Record<string, unknown>; body: string } {
+  return readDoc(path, text, AnyFrontmatterSchema);
+}
+
 const readYaml = (path: string, yaml: string): unknown => {
   const doc = YAML.parseDocument(yaml);
   const error = doc.errors[0];

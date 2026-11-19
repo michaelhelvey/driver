@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
   parseProject,
+  readFrontmatter,
   refPaths,
   renderFiles,
   renderListProjects,
@@ -146,6 +147,29 @@ describe("parseProject on fixtures", () => {
     expect(pdk.body).toStartWith("## the done rule");
     expect(pdk.log.map((e) => e.at)).toEqual(pdk.log.map((e) => e.at).toSorted());
     expect(pdk.log).toHaveLength(6);
+  });
+});
+
+describe("readFrontmatter", () => {
+  it.each<{ name: string; path: string; keys: string[]; pr: string | undefined }>([
+    {
+      name: "a task, in file order with quotes undone",
+      path: "02-canaries/02-t4-authorization-platform.md",
+      keys: ["title", "status", "ask", "repo", "pr", "updated"],
+      pr: "#204",
+    },
+    { name: "a phase", path: "02-canaries/phase.md", keys: ["title"], pr: undefined },
+    { name: "the log", path: "log.md", keys: ["title"], pr: undefined },
+  ])("reads $name", async (c) => {
+    const text = (await loadFixture("pdk-2-sentry")).get(c.path) ?? "";
+    const { data, body } = readFrontmatter(c.path, text);
+    expect(Object.keys(data)).toEqual(c.keys);
+    expect(data["pr"]).toBe(c.pr);
+    expect(text.endsWith(`${body}\n`)).toBe(true);
+  });
+
+  it("names the file it cannot read", () => {
+    expect(() => readFrontmatter("01-a/01-b.md", "no frontmatter")).toThrow("01-a/01-b.md");
   });
 });
 

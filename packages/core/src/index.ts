@@ -16,6 +16,7 @@ export {
   type Project,
   type Task,
 } from "./project.ts";
+export { readFrontmatter } from "./format.ts";
 export { renderListProjects, renderNeedsMe, renderProject, renderRead } from "./render.ts";
 export * from "./schemas.ts";
 export * from "./tools.ts";
