@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vp dev",
     "e2e": "tauri build --debug --no-bundle --features e2e && bun scripts/e2e.ts",
+    "e2e:web": "playwright test",
     "build": "vp build",
     "tauri": "tauri",
     "test": "bun --conditions=browser --conditions=development test --pass-with-no-tests"
@@ -13,6 +14,7 @@
     "@driver/core": "workspace:*",
     "@solidjs/web": "2.0.3",
     "@tauri-apps/api": "2.12.5",
+    "@tauri-apps/plugin-clipboard-manager": "2.5.0",
     "@tauri-apps/plugin-fs": "2.7.1",
     "@ui-sdk/core": "0.1.0-beta.12",
     "@ui-sdk/solid": "0.1.0-beta.12",
@@ -22,6 +24,8 @@
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "21.0.4",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@playwright/test": "1.65.1",
     "@solidjs/compiler": "2.0.2",
     "@solidjs/diagnostics": "2.0.3",
     "@solidjs/vite-plugin": "3.0.1",
