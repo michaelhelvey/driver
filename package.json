@@ -13,14 +13,18 @@
     "check": "vp check",
     "e2e:desktop": "bun run --cwd apps/desktop e2e",
     "e2e:web": "bun run --cwd apps/desktop e2e:web",
-    "test": "bun test ./packages && bun run --cwd apps/desktop test",
+    "setup": "bun scripts/setup.ts",
+    "test": "bun test ./packages ./scripts && bun run --cwd apps/desktop test",
     "validate": "vp check && bun run test && bun run e2e:web"
   },
   "devDependencies": {
+    "@driver/core": "workspace:*",
     "@michaelhelvey/vite-config": "2.0.8",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@types/bun": "^1.4.4",
     "eslint-plugin-solid": "0.20.0",
-    "vite-plus": "^1.7.0"
+    "vite-plus": "^1.7.0",
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "typescript": "^7.0.2"
