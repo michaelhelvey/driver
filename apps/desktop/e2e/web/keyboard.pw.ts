@@ -216,20 +216,22 @@ test("drives every key of the sheet with no mouse", async ({ page }) => {
 
   await test.step("y copies the cursor row's path", async () => {
     await keys(page, "y");
-    const copied = await page.evaluate(async () => navigator.clipboard.readText());
-    expect(copied).toBe(`${ROOT}/${COA}`);
+    await expect
+      .poll(() => page.evaluate(async () => navigator.clipboard.readText()))
+      .toBe(`${ROOT}/${COA}`);
     await expect(page.getByRole("region", { name: "Notifications" })).toContainText(
       `copied ${ROOT}/${COA}`,
     );
   });
 
   await test.step("c copies a reference to the cursor row's task", async () => {
+    const reference = `re t4-coa (t4-coa): ${ROOT}/${COA}`;
     await keys(page, "c");
     await expect
       .poll(() => page.evaluate(async () => navigator.clipboard.readText()))
-      .toBe(`re t4-coa (t4-coa): ${ROOT}/${COA}`);
+      .toBe(reference);
     await expect(page.getByRole("region", { name: "Notifications" })).toContainText(
-      "copied reference",
+      `copied ${reference}`,
     );
   });
 

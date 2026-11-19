@@ -43,7 +43,8 @@ change.
 (`@wdio/tauri-service`) against the real WebKit window. The spec
 (`apps/desktop/e2e/specs/live-reload.e2e.ts`) starts the real MCP server on that root and runs the
 user acceptance steps below with keys only, checks the fs scope (reads only under `DRIVER_ROOT`,
-writes nowhere), the CSP, the `t` theme across a reload, and that `y` and `c` write the clipboard.
+writes nowhere), the CSP, the `t` theme across a reload, and that `y` and `c` put the absolute path
+and the reference on the system clipboard (read back with `pbpaste`, since the app cannot read it).
 **It writes to the real system clipboard**: expect yours to change.
 
 ## MCP server over stdio

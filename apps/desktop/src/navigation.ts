@@ -164,27 +164,25 @@ export function createNavigation(deps: NavigationDeps): Navigation {
     if (!view.state.reader.open) cursorKey(view.open);
     focusSoon(readerPane);
   };
-  const copy = (text: string, ...toast: Parameters<Notify["info"]>) =>
+  const copy = (text: string) =>
     deps
       .clipboard()
       .writeText(text)
       .then(
-        () => notify.info(...toast),
+        () => notify.info("copied", text),
         (error: unknown) => notify.error("could not copy:", errorText(error)),
       );
   const pathOf = (entry: Entry) =>
     `${deps.root()}/${entry.slug}/${deps.cursor()?.path ?? "project.md"}`;
   const copyPath = () => {
     const entry = deps.current();
-    if (entry === undefined) return;
-    const path = pathOf(entry);
-    void copy(path, "copied", path);
+    if (entry !== undefined) void copy(pathOf(entry));
   };
   const copyReference = () => {
     const entry = open();
     const row = deps.cursor();
-    if (entry === undefined || row === undefined) return;
-    void copy(referenceOf(row, entry.slug, entry.project, pathOf(entry)), "copied reference");
+    if (entry !== undefined && row !== undefined)
+      void copy(referenceOf(row, entry.slug, entry.project, pathOf(entry)));
   };
   const filter = () => {
     view.setEditing(true);

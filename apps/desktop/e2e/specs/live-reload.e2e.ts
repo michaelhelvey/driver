@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readFile, realpath } from "node:fs/promises";
 import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -34,6 +35,23 @@ const focusedRow = async () =>
 
 const toast = async () =>
   browser.execute(() => document.querySelector("[aria-label=Notifications]")?.textContent);
+
+const midstreamPath = async () =>
+  join(await root(), "pdk-2-sentry", "03a-framework-apps", "07-t4-midstream-insights.md");
+
+const pasteboard = () => execFileSync("pbpaste", { encoding: "utf8" });
+
+const expectCopied = async (key: string, text: string) => {
+  await browser.keys(key);
+  await browser.waitUntil(async () => (await toast())?.includes(`copied ${text}`) === true, {
+    timeout: 2000,
+    timeoutMsg: `no "copied ${text}" toast after ${key}`,
+  });
+  await browser.waitUntil(async () => pasteboard() === text, {
+    timeout: 2000,
+    timeoutMsg: `the system clipboard is ${JSON.stringify(pasteboard())}, not ${JSON.stringify(text)}, after ${key}`,
+  });
+};
 
 before(async () => {
   await mcp.connect(
@@ -211,18 +229,18 @@ describe("driver desktop", () => {
     await expect(cursorRow()).toHaveAttribute("data-row", "task:t4-midstream-insights");
   });
 
-  it("y writes the cursor row's path to the clipboard, which the app cannot read back", async () => {
-    const path = join(
-      await root(),
-      "pdk-2-sentry",
-      "03a-framework-apps",
-      "07-t4-midstream-insights.md",
+  it("y writes the cursor row's absolute path to the system clipboard", async () => {
+    await expectCopied("y", await midstreamPath());
+  });
+
+  it("c writes a reference to the cursor row, with its absolute path, to the system clipboard", async () => {
+    await expectCopied(
+      "c",
+      `re t4-midstream-insights (t4-midstream-insights): ${await midstreamPath()}`,
     );
-    await browser.keys("y");
-    await browser.waitUntil(async () => (await toast()) === `copied ${path}`, {
-      timeout: 2000,
-      timeoutMsg: `no "copied ${path}" toast after y`,
-    });
+  });
+
+  it("cannot read the clipboard back", async () => {
     const read = await browser.execute(async () =>
       window["__TAURI_INTERNALS__"].invoke("plugin:clipboard-manager|read_text", {}).then(
         () => "allowed",
@@ -230,14 +248,6 @@ describe("driver desktop", () => {
       ),
     );
     expect(read).toContain("not allowed");
-  });
-
-  it("c writes a reference to the cursor row to the clipboard", async () => {
-    await browser.keys("c");
-    await browser.waitUntil(async () => (await toast())?.includes("copied reference") === true, {
-      timeout: 2000,
-      timeoutMsg: `no "copied reference" toast after c`,
-    });
   });
 
   it("closes the reader when its handle collapses it, so the next activate opens it", async () => {
