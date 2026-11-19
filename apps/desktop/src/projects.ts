@@ -38,7 +38,9 @@ export type Follower = {
  * re-reads that project only, once `debounceMs` pass with no further change to it. Reads of one
  * project run in order, so a slow read never overwrites a newer one.
  *
- * Resolves to a function that stops following.
+ * A project read that fails (a file renamed away mid-read) is logged and skipped: the watcher
+ * starts before the first read, so the change that broke it schedules another read. Resolves to
+ * a function that stops following; rejects, and stops watching, when the root cannot be listed.
  *
  * @example
  * const stop = await followProjects(source, {
@@ -54,7 +56,6 @@ export async function followProjects(
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
   const reads = new Map<string, Promise<void>>();
   let stopped = false;
-  let ready: Promise<void> = Promise.resolve();
 
   const readAfter = async (slug: string, previous: Promise<void>) => {
     await previous;
@@ -62,20 +63,13 @@ export async function followProjects(
     if (!stopped) follower.onEntry(slug, files === null ? null : toEntry(slug, files));
   };
 
-  const reread = (slug: string) => {
+  const read = (slug: string): Promise<void> => {
     timers.delete(slug);
-    const next = readAfter(slug, reads.get(slug) ?? ready);
-    reads.set(
-      slug,
-      next.catch((error: unknown) => console.error(`driver: reading ${slug}`, error)),
+    const next = readAfter(slug, reads.get(slug) ?? Promise.resolve()).catch((error: unknown) =>
+      console.error(`driver: reading ${slug}`, error),
     );
-  };
-
-  const readAll = async () => {
-    const tree = await source.readTree();
-    if (stopped) return;
-    tree.forEach((files, slug) => follower.onEntry(slug, toEntry(slug, files)));
-    follower.onReady();
+    reads.set(slug, next);
+    return next;
   };
 
   const changed = (path: string) => {
@@ -84,17 +78,23 @@ export async function followProjects(
     clearTimeout(timers.get(slug));
     timers.set(
       slug,
-      setTimeout(() => reread(slug), debounceMs),
+      setTimeout(() => void read(slug), debounceMs),
     );
   };
 
   const unwatch = await source.watch(changed);
-  ready = readAll();
-  await ready;
-
-  return () => {
+  const stop = () => {
     stopped = true;
     timers.forEach((timer) => clearTimeout(timer));
     unwatch();
   };
+
+  try {
+    await Promise.all((await source.slugs()).map(read));
+  } catch (error) {
+    stop();
+    throw error;
+  }
+  follower.onReady();
+  return stop;
 }

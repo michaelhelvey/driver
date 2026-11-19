@@ -299,10 +299,10 @@ cannot disagree.
   something can't be done from the plugins.
 - Frontend: Vite + Solid 2 (`solid-js` and `@solidjs/web` 2.x) + `@ui-sdk/solid` + Tailwind v4
   (`@tailwindcss/vite`).
-- Data flow: a `FileSource` interface (`readTree()`, `watch(onChange)`) with two implementations:
-  Tauri fs (real app) and an in-memory fixture (dev in a browser, tests). Files go through
-  `parseProject` from `packages/core`. On a change, re-read only the changed project (debounce
-  100ms).
+- Data flow: a `FileSource` interface (`slugs()`, `readProject(slug)`, `watch(onChange)`) with two
+  implementations: Tauri fs (real app) and an in-memory fixture (dev in a browser, tests). Files go
+  through `parseProject` from `packages/core`. On a change, re-read only the changed project
+  (debounce 100ms).
 - Markdown rendering: `marked` with custom renderers to match the mockup (faint `##` before
   headings, `[x]` / `[ ]` task boxes, `$ ` prompt on `sh` blocks, comment lines muted, `# →` result
   lines in sage). Escape everything; files are agent-written text.

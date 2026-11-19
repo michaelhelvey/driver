@@ -1,4 +1,4 @@
-import { readEach, type FileSource, type ProjectFiles } from "./source.ts";
+import { slugOf, type FileSource, type ProjectFiles } from "./source.ts";
 
 /** A {@link FileSource} over an in-memory tree that can be changed, like a disk an agent writes to. */
 export type MemorySource = FileSource & {
@@ -32,8 +32,7 @@ export function memorySource(root: string, files: ReadonlyMap<string, string>): 
   return {
     root,
     readProject,
-    readTree: async () =>
-      readEach([...new Set([...tree.keys()].map((path) => path.split("/")[0] ?? ""))], readProject),
+    slugs: async () => [...new Set([...tree.keys()].flatMap((path) => slugOf(path) ?? []))],
     watch: async (onChange) => {
       watchers.add(onChange);
       return () => watchers.delete(onChange);

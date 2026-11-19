@@ -1,3 +1,5 @@
+import { isHidden } from "@driver/core";
+
 /** Every file of one project: paths relative to the project directory, to their text. */
 export type ProjectFiles = Map<string, string>;
 
@@ -7,14 +9,15 @@ export type ProjectFiles = Map<string, string>;
  *
  * @example
  * const source = memorySource("/fixtures", files);
- * const tree = await source.readTree(); // Map { "pdk-2-sentry" => Map { "project.md" => "---…" } }
+ * await source.slugs(); // ["driver", "pdk-2-sentry"]
+ * await source.readProject("driver"); // Map { "project.md" => "---…", … }
  * const stop = await source.watch((path) => console.log("changed", path));
  */
 export type FileSource = {
   /** The root directory, for display. */
   readonly root: string;
-  /** Reads every project under the root. A missing root has no projects. */
-  readTree: () => Promise<Map<string, ProjectFiles>>;
+  /** Lists the slugs of the projects under the root. A missing root has no projects. */
+  slugs: () => Promise<string[]>;
   /** Reads one project, or `null` when its directory is gone. */
   readProject: (slug: string) => Promise<ProjectFiles | null>;
   /**
@@ -23,8 +26,6 @@ export type FileSource = {
    */
   watch: (onChange: (path: string) => void) => Promise<() => void>;
 };
-
-const HIDDEN = /(^|\/)\./;
 
 /**
  * The project slug a changed path belongs to, or `null` for paths no reader looks at: the root
@@ -36,19 +37,5 @@ const HIDDEN = /(^|\/)\./;
  */
 export function slugOf(path: string): string | null {
   const slug = path.split("/")[0] ?? "";
-  return slug === "" || HIDDEN.test(path) ? null : slug;
-}
-
-/**
- * Reads every project of `slugs` with `read`, dropping the ones that vanished mid-read.
- *
- * @example
- * await readEach(["a", "b"], source.readProject); // Map { "a" => …, "b" => … }
- */
-export async function readEach(
-  slugs: readonly string[],
-  read: (slug: string) => Promise<ProjectFiles | null>,
-): Promise<Map<string, ProjectFiles>> {
-  const projects = await Promise.all(slugs.map(async (slug) => [slug, await read(slug)] as const));
-  return new Map(projects.filter((entry): entry is [string, ProjectFiles] => entry[1] !== null));
+  return slug === "" || isHidden(path) ? null : slug;
 }

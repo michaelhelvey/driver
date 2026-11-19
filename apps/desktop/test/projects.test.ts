@@ -74,6 +74,50 @@ describe("followProjects", () => {
     stop();
   });
 
+  it("skips a project whose first read fails mid-write, then reads it on the next change", async () => {
+    const tree = await fixtureTree();
+    const source = memorySource("fixtures", tree);
+    const readProject = source.readProject;
+    let failures = 1;
+    source.readProject = async (slug) => {
+      if (slug === "pdk-2-sentry" && failures-- > 0) throw new Error("ENOENT mid-rename");
+      return readProject(slug);
+    };
+    const entries = new Map<string, Entry | null>();
+    let ready = false;
+    const stop = await followProjects(
+      source,
+      { onEntry: (slug, entry) => entries.set(slug, entry), onReady: () => (ready = true) },
+      20,
+    );
+    expect({ ready, slugs: [...entries.keys()] }).toEqual({ ready: true, slugs: ["driver"] });
+
+    source.write(SKILLS, withStatus(tree.get(SKILLS) ?? "", "done"));
+    await sleep(60);
+    expect(percentOf(entries.get("pdk-2-sentry"))).toBe(37);
+    stop();
+  });
+
+  it("stops watching when the root cannot be listed", async () => {
+    const source = memorySource("fixtures", await fixtureTree());
+    let watching = 0;
+    const watch = source.watch;
+    source.watch = async (onChange) => {
+      watching += 1;
+      const unwatch = await watch(onChange);
+      return () => {
+        watching -= 1;
+        unwatch();
+      };
+    };
+    source.slugs = async () => {
+      throw new Error("EACCES");
+    };
+    const following = followProjects(source, { onEntry: () => {}, onReady: () => {} });
+    expect(await following.then(() => "resolved").catch(String)).toBe("Error: EACCES");
+    expect(watching).toBe(0);
+  });
+
   it("has no projects when the root is empty", async () => {
     const entries: string[] = [];
     let ready = false;

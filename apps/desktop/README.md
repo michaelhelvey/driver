@@ -17,8 +17,8 @@ shows an error in the window.
 
 ## Layout
 
-- `src/source/`: `FileSource` (`readTree`, `readProject`, `watch`). `tauri.ts` reads the disk
-  through `tauri-plugin-fs`; `memory.ts` is an in-memory tree; `fixtures.ts` bundles
+- `src/source/`: `FileSource` (`slugs`, `readProject`, `watch`). `tauri.ts` reads the disk through
+  `tauri-plugin-fs`; `memory.ts` is an in-memory tree; `fixtures.ts` bundles
   `packages/core/fixtures` into one for browser dev.
 - `src/projects.ts`: `followProjects` reads every project, then re-reads only the project a change
   touched, after 100ms of quiet. A project that fails to parse becomes an error entry.

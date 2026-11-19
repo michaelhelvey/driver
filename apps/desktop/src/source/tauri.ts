@@ -1,3 +1,4 @@
+import { isHidden } from "@driver/core";
 import { invoke } from "@tauri-apps/api/core";
 import {
   exists,
@@ -7,9 +8,7 @@ import {
   type WatchEvent,
 } from "@tauri-apps/plugin-fs";
 import { z } from "zod";
-import { readEach, type FileSource, type ProjectFiles } from "./source.ts";
-
-const isHidden = (name: string) => name.startsWith(".");
+import type { FileSource, ProjectFiles } from "./source.ts";
 
 const isAccess = (event: WatchEvent) => typeof event.type === "object" && "access" in event.type;
 
@@ -47,15 +46,13 @@ export async function tauriSource(): Promise<FileSource> {
     return (await exists(dir)) ? new Map(await walk(dir)) : null;
   };
 
-  const slugs = async () =>
-    (await exists(root))
-      ? (await readDir(root)).filter((e) => e.isDirectory && !isHidden(e.name)).map((e) => e.name)
-      : [];
-
   return {
     root,
     readProject,
-    readTree: async () => readEach(await slugs(), readProject),
+    slugs: async () =>
+      (await exists(root))
+        ? (await readDir(root)).filter((e) => e.isDirectory && !isHidden(e.name)).map((e) => e.name)
+        : [],
     watch: async (onChange) => {
       if (!(await exists(root))) return () => {};
       return watchImmediate(
