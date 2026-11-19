@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Read-only fs commands, with file watching, and writing text to the clipboard for y. The fs commands carry no paths: lib.rs scopes them at startup to the one projects root (DRIVER_ROOT, else $HOME/.driver). The clipboard can be written, never read.",
+  "description": "Read-only fs commands, with file watching, and writing text to the clipboard for y and c. The fs commands carry no paths: lib.rs scopes them at startup to the one projects root (DRIVER_ROOT, else $HOME/.driver). The clipboard can be written, never read.",
   "windows": ["main"],
   "permissions": [
     "core:default",
