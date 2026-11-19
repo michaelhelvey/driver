@@ -14,7 +14,12 @@ const TARGETS: Record<string, string> = {
 const press = (target: string, init: KeyboardEventInit) => {
   document.body.innerHTML = TARGETS[target] ?? "";
   const ran: string[] = [];
-  const stop = bindKeymap(document, { t: () => ran.push("t"), J: () => ran.push("J") });
+  const stop = bindKeymap(document, {
+    t: () => ran.push("t"),
+    J: () => ran.push("J"),
+    " ": () => ran.push("space"),
+    Escape: () => ran.push("Escape"),
+  });
   const el = [...document.body.querySelectorAll(":not(option)")].at(-1) ?? document.body;
   el.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init }));
   stop();
@@ -35,6 +40,13 @@ describe("bindKeymap", () => {
     ["select", { key: "t" }, []],
     ["editable", { key: "t" }, []],
     ["inside editable", { key: "t" }, []],
+    ["body", { key: " " }, ["space"]],
+    ["body", { key: "Escape" }, ["Escape"]],
+    ["input", { key: " " }, []],
+    ["input", { key: "Escape" }, []],
+    ["textarea", { key: " " }, []],
+    ["editable", { key: " " }, []],
+    ["inside editable", { key: "Escape" }, []],
   ])("on %s, %p runs %p", (target, init, ran) => {
     expect(press(target, init)).toEqual(ran);
   });
