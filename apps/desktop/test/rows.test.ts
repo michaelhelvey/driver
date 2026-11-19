@@ -95,18 +95,16 @@ describe("cursorRow", () => {
 });
 
 describe("referenceOf", () => {
+  const titled = { ...pdk, meta: { ...pdk.meta, title: "Sentry rollout" } };
   it.each([
-    ["project", "re pdk-2-sentry (pdk-2-sentry): /r/pdk-2-sentry/project.md"],
-    ["attention:t4-user-info", "re t4-user-info (t4-user-info): /r/pdk-2-sentry/project.md"],
-    ["log", "re log (pdk-2-sentry): /r/pdk-2-sentry/project.md"],
-    [
-      "phase:pdk-2.0",
-      "re pdk-2.0 (pdk 2.0 — extension, preload, facade): /r/pdk-2-sentry/project.md",
-    ],
-    ["task:plan-doc", "re plan-doc (plan doc): /r/pdk-2-sentry/project.md"],
+    ["project", "re pdk-2-sentry (Sentry rollout): /r/x.md"],
+    ["attention:t4-user-info", "re t4-user-info (t4-user-info): /r/x.md"],
+    ["log", "re log (Sentry rollout): /r/x.md"],
+    ["phase:pdk-2.0", "re pdk-2.0 (pdk 2.0 — extension, preload, facade): /r/x.md"],
+    ["task:plan-doc", "re plan-doc (plan doc): /r/x.md"],
   ])("%s → %s", (key, want) => {
     const row = rows.find((candidate) => candidate.key === key);
-    expect(row && referenceOf(row, "pdk-2-sentry", pdk, "/r/pdk-2-sentry/project.md")).toBe(want);
+    expect(row && referenceOf(row, "pdk-2-sentry", titled, "/r/x.md")).toBe(want);
   });
 });
 
