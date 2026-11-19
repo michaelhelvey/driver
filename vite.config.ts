@@ -2,7 +2,7 @@ import { defineConfig, FileTypes } from "@michaelhelvey/vite-config";
 
 export default await defineConfig({
   fmt: {
-    ignorePatterns: ["mockups/**"],
+    ignorePatterns: ["mockups/**", "packages/*/fixtures/**"],
   },
   lint: {
     rules: {

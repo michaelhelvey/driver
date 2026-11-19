@@ -1,0 +1,289 @@
+import { describe, expect, it } from "bun:test";
+import {
+  executePlan,
+  parseProject,
+  planApply,
+  planCreate,
+  type Plan,
+  type Status,
+} from "../src/index.ts";
+import { loadFixture, taskOf as task } from "./fixtures.ts";
+
+const NOW = new Date("2026-11-20T09:00:00.000Z");
+const STAMP = "2026-11-20T09:00:00Z";
+const files = await loadFixture("pdk-2-sentry");
+const current = parseProject(files);
+
+const run = (ops: unknown[], log = "something happened.") => {
+  const result = planApply(current, { log, ops }, NOW);
+  if (result.kind === "error") throw new Error(result.message);
+  const next = executePlan(files, result);
+  return { plan: result, next, project: parseProject(next) };
+};
+
+const frontmatterKeys = (text: string | undefined): string[] =>
+  [
+    ...(String(text)
+      .split("---")[1]
+      ?.matchAll(/^(\w+):/gm) ?? []),
+  ].map((match) => String(match[1]));
+
+const stepRank = (step: Plan["steps"][number]): number => {
+  if (step.kind === "write") return 0;
+  if (step.kind === "remove") return 3;
+  return step.from.startsWith(".tmp-") ? 2 : 1;
+};
+
+describe("planApply", () => {
+  it("marks t4-agent-skills done: 37%, updated set, log appended, round-trips", () => {
+    const { plan, next, project } = run(
+      [{ op: "task", id: "t4-agent-skills", status: { kind: "done" } }],
+      "t4-agent-skills #31 merged.",
+    );
+    expect(project.progress.percent).toBe(37);
+    expect(task(project, "t4-agent-skills").updated).toBe(STAMP);
+    expect(project.log.at(-1)).toEqual({ at: STAMP, text: "t4-agent-skills #31 merged." });
+    expect(project.updated).toBe(STAMP);
+    expect(plan.project.progress).toEqual(project.progress);
+    expect(next.get("01-framework/02-t4-agent-skills.md")).not.toContain("ask:");
+    expect(next.get("01-framework/02-t4-agent-skills.md")).toContain('pr: "#31"');
+  });
+
+  it.each<{ name: string; id: string; status: Status; keys: string[] }>([
+    {
+      name: "needs-you → blocked drops ask",
+      id: "t4-authorization-platform",
+      status: { kind: "blocked", on: "sentry RTT data", by: "t4-coa" },
+      keys: ["title", "status", "blocked_on", "blocked_by", "repo", "pr", "updated"],
+    },
+    {
+      name: "blocked → skipped drops blocked_on",
+      id: "t4-user-info",
+      status: { kind: "skipped", why: "repo archived" },
+      keys: ["title", "status", "why", "repo", "updated"],
+    },
+    {
+      name: "todo → needs-you adds ask",
+      id: "t4-coa",
+      status: { kind: "needs-you", ask: "build broke: tsdown exit 1" },
+      keys: ["title", "status", "ask", "repo", "updated"],
+    },
+    {
+      name: "needs-you → done drops ask",
+      id: "t4-agent-skills",
+      status: { kind: "done" },
+      keys: ["title", "status", "repo", "pr", "updated"],
+    },
+  ])("status change: $name", (c) => {
+    const { next, project } = run([{ op: "task", id: c.id, status: c.status }]);
+    expect(frontmatterKeys(next.get(task(project, c.id).path))).toEqual(c.keys);
+    expect(task(project, c.id).status).toEqual(c.status);
+  });
+
+  it("creates a phase and a task in one batch, with prefixes after the last", () => {
+    const { plan, project } = run([
+      { op: "phase", id: "follow-up", title: "follow-up", body: "After cleanup." },
+      { op: "task", id: "docs", phase: "follow-up", title: "write docs", body: "- [ ] a\n- [x] b" },
+    ]);
+    expect(project.phases.at(-1)?.path).toBe("05-follow-up");
+    expect(task(project, "docs")).toMatchObject({ label: "05.1", steps: { done: 1, total: 2 } });
+    expect(plan.steps.filter((s) => s.kind === "rename" && !s.from.startsWith(".tmp-"))).toEqual(
+      [],
+    );
+  });
+
+  it("updates fields and leaves the rest unchanged", () => {
+    const { project } = run([{ op: "task", id: "t4-coa", pr: "#52", title: "t4-coa (merged)" }]);
+    const after = task(project, "t4-coa");
+    expect(after).toMatchObject({ pr: "#52", title: "t4-coa (merged)", repo: "t4-coa" });
+    expect(after.body).toBe(task(current, "t4-coa").body);
+    expect(after.status).toEqual({ kind: "todo" });
+  });
+
+  it("moves a task to another phase: it goes last there, the old phase keeps its numbers", () => {
+    const { plan, project } = run([{ op: "task", id: "t4-user-info", phase: "framework-apps" }]);
+    expect(task(project, "t4-user-info").path).toBe("03a-framework-apps/08-t4-user-info.md");
+    expect(task(project, "t4-lower-enviroment-refresh").label).toBe("03c.3");
+    expect(plan.steps).toContainEqual({
+      kind: "rename",
+      from: "03c-pdk-bump/02-t4-user-info.md",
+      to: "03a-framework-apps/08-t4-user-info.md",
+    });
+  });
+
+  it("reorders a task with after and renumbers the phase", () => {
+    const { project } = run([{ op: "task", id: "t4-coa", after: "t4-directory" }]);
+    const phase = project.phases.find((p) => p.id === "framework-apps");
+    expect(phase?.tasks.map((t) => `${t.prefix}-${t.id}`)).toEqual([
+      "01-t4-developer-dashboard",
+      "02-t4-user-interactions-api",
+      "03-t4-capacity-tool",
+      "04-t4-data-services-mgmt",
+      "05-t4-directory",
+      "06-t4-coa",
+      "07-t4-midstream-insights",
+    ]);
+  });
+
+  it("reorders a phase, renaming only the moved folder when the neighbours still sort", () => {
+    const { plan, project, next } = run([{ op: "phase", id: "cleanup", after: "canaries" }]);
+    expect(project.phases.map((p) => p.path)).toEqual([
+      "00-pdk-2.0",
+      "01-framework",
+      "02-canaries",
+      "03-cleanup",
+      "03a-framework-apps",
+      "03b-custom-builds",
+      "03c-pdk-bump",
+    ]);
+    expect(plan.steps.filter((s) => s.kind === "remove")).toEqual([
+      { kind: "remove", path: "04-cleanup" },
+    ]);
+    expect([...next.keys()].some((path) => path.startsWith("04-cleanup/"))).toBe(false);
+    expect(task(project, "ssm-alias").label).toBe("03.1");
+    expect(project.tasks).toHaveLength(current.tasks.length);
+  });
+
+  it("renumbers every phase from the lowest kept prefix when a moved phase cannot fit", () => {
+    const { project } = run([{ op: "phase", id: "pdk-bump", after: "pdk-2.0" }]);
+    expect(project.phases.map((p) => p.path)).toEqual([
+      "00-pdk-2.0",
+      "01-pdk-bump",
+      "02-framework",
+      "03-canaries",
+      "04-framework-apps",
+      "05-custom-builds",
+      "06-cleanup",
+    ]);
+  });
+
+  it("allows blocked_by and after to name ids created in the same batch", () => {
+    const { project } = run([
+      { op: "task", id: "t4-coa", status: { kind: "blocked", on: "new task", by: "new-one" } },
+      { op: "task", id: "new-one", phase: "canaries", title: "new one", after: "t4-transit-times" },
+    ]);
+    expect(task(project, "new-one").label).toBe("02.2");
+    expect(task(project, "t4-authorization-platform").label).toBe("02.3");
+  });
+
+  it.each([
+    {
+      name: "bad blocked_by",
+      ops: [{ op: "task", id: "t4-coa", status: { kind: "blocked", on: "x", by: "nope" } }],
+      error: 'blocked_by "nope"',
+    },
+    {
+      name: "missing ask",
+      ops: [{ op: "task", id: "t4-coa", status: { kind: "needs-you" } }],
+      error: "ask",
+    },
+    {
+      name: "multi-line ask",
+      ops: [{ op: "task", id: "t4-coa", status: { kind: "needs-you", ask: "a\nb" } }],
+      error: "one line",
+    },
+    {
+      name: "new task without phase",
+      ops: [{ op: "task", id: "new", title: "new" }],
+      error: "needs a phase and a title",
+    },
+    {
+      name: "new task without title",
+      ops: [{ op: "task", id: "new", phase: "cleanup" }],
+      error: "needs a phase and a title",
+    },
+    { name: "new phase without title", ops: [{ op: "phase", id: "new" }], error: "needs a title" },
+    {
+      name: "move to missing phase",
+      ops: [{ op: "task", id: "t4-coa", phase: "nope" }],
+      error: 'no phase "nope"',
+    },
+    {
+      name: "bad task after",
+      ops: [{ op: "task", id: "t4-coa", after: "nope" }],
+      error: 'no task "nope"',
+    },
+    {
+      name: "after in another phase",
+      ops: [{ op: "task", id: "t4-coa", phase: "framework-apps", after: "ssm-alias" }],
+      error: "is not in phase",
+    },
+    {
+      name: "bad phase after",
+      ops: [{ op: "phase", id: "cleanup", after: "nope" }],
+      error: 'no phase "nope"',
+    },
+    {
+      name: "task id taken by a phase",
+      ops: [{ op: "task", id: "canaries", phase: "cleanup", title: "x" }],
+      error: "already a phase",
+    },
+    {
+      name: "unknown status kind",
+      ops: [{ op: "task", id: "t4-coa", status: { kind: "broken" } }],
+      error: "kind",
+    },
+    {
+      name: "extra status field",
+      ops: [{ op: "task", id: "t4-coa", status: { kind: "done", ask: "x" } }],
+      error: "ask",
+    },
+    { name: "## in a log entry", ops: [], log: "## 2026", error: "heading" },
+    { name: "empty log", ops: [], log: " ", error: "log" },
+  ])("refuses $name", (c) => {
+    const result = planApply(current, { log: c.log ?? "ok.", ops: c.ops }, NOW);
+    expect(result.kind).toBe("error");
+    expect(result.kind === "error" ? result.message : "").toContain(c.error);
+  });
+
+  it("checks the whole batch: a later invalid op refuses the earlier valid ones", () => {
+    const result = planApply(
+      current,
+      {
+        log: "x.",
+        ops: [
+          { op: "task", id: "t4-coa", status: { kind: "done" } },
+          { op: "task", id: "t4-directory", status: { kind: "blocked", on: "x", by: "ghost" } },
+        ],
+      },
+      NOW,
+    );
+    expect(result.kind).toBe("error");
+  });
+
+  it("writes temps (dot-prefixed) first, then renumber renames, then temp renames, then removes", () => {
+    const { plan } = run([
+      { op: "phase", id: "cleanup", after: "canaries", title: "cleanup!" },
+      { op: "task", id: "ssm-alias", status: { kind: "done" } },
+    ]);
+    const ranks = plan.steps.map(stepRank);
+    expect(ranks).toEqual(ranks.toSorted((a, b) => a - b));
+    expect(new Set(ranks)).toEqual(new Set([0, 1, 2, 3]));
+    const writes = plan.steps.flatMap((step) => (step.kind === "write" ? [step.path] : []));
+    expect(writes.every((path) => path.startsWith(".tmp-") && !path.includes("/"))).toBe(true);
+  });
+});
+
+describe("planCreate", () => {
+  it.each([
+    { rex: undefined, line: undefined },
+    { rex: "01JDX-coordinator", line: "rex: 01JDX-coordinator" },
+  ])("creates project.md and an empty log.md (rex: $rex)", (c) => {
+    const plan = planCreate(
+      { slug: "new", title: "new", repo: "~/dev/new", summary: "A project.", rex: c.rex },
+      NOW,
+    );
+    if (plan.kind === "error") throw new Error(plan.message);
+    const created = executePlan(new Map(), plan);
+    const project = parseProject(created);
+    expect([...created.keys()].toSorted()).toEqual(["log.md", "project.md"]);
+    expect(project).toMatchObject({
+      summary: "A project.",
+      log: [],
+      progress: { percent: 0 },
+      nowIn: null,
+    });
+    expect(project.meta.rex).toBe(c.rex);
+    expect(created.get("project.md")?.includes("rex:")).toBe(c.line !== undefined);
+  });
+});

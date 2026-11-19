@@ -1,0 +1,15 @@
+---
+title: driver
+repo: ~/dev/helvetici/driver
+rex: 01JD9A1K2XWE-coordinator
+started: 2026-11-19
+updated: 2026-11-19T07:39:00Z
+---
+
+A tiny project tracker for agents. Everything is a markdown file under `~/.driver/`; this UI is read-only and the coordinator talks to it over MCP. You're looking at the mockup right now.
+
+## principles
+
+- files are the source of truth. no database.
+- free-form text first, metadata second.
+- keyboard everything.
