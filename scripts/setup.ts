@@ -1,14 +1,15 @@
 #!/usr/bin/env bun
-import { mkdir, rm } from "node:fs/promises";
+import { mkdir, rename, rm } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { registration } from "./opencode.ts";
 
 const CHECKOUT = join(import.meta.dir, "..");
 const MAIN = join(CHECKOUT, "packages", "mcp", "src", "main.ts");
 const COMMAND = [process.execPath, MAIN];
 const BUNDLE = join(CHECKOUT, "apps/desktop/src-tauri/target/release/bundle/macos/driver.app");
-const APP = join(process.env.DRIVER_APPLICATIONS_DIR ?? "/Applications", "driver.app");
+const APP = join(process.env.DRIVER_APPLICATIONS_DIR || "/Applications", "driver.app");
+const STAGING = `${APP}.installing`;
 const ROOT = join(homedir(), ".driver");
 const OPENCODE_DIR = join(process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"), "opencode");
 
@@ -81,20 +82,45 @@ const build = async (): Promise<Outcome> => {
   return done(`build driver.app`);
 };
 
+const signal = (pid: number, sig: NodeJS.Signals | 0): boolean => {
+  try {
+    process.kill(pid, sig);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const exited = async (pids: readonly number[], ms: number): Promise<boolean> => {
+  if (!pids.some((pid) => signal(pid, 0))) return true;
+  if (ms <= 0) return false;
+  await Bun.sleep(100);
+  return exited(pids, ms - 100);
+};
+
 const quitInstalled = async (): Promise<boolean> => {
   const { output } = await run(["pgrep", "-f", `${APP}/Contents/MacOS/`]);
-  const pids = output.split("\n").filter(Boolean);
+  const pids = output.split("\n").filter(Boolean).map(Number);
   if (pids.length === 0) return false;
-  await must(["kill", ...pids], `quit driver, then rerun`);
-  await must(["sh", "-c", `while kill -0 ${pids.join(" ")} 2>/dev/null; do sleep 0.1; done`], "");
+  pids.forEach((pid) => signal(pid, "SIGTERM"));
+  if (!(await exited(pids, 10_000)))
+    throw new StepFailed(
+      `driver (pid ${pids.join(", ")}) did not quit in 10s`,
+      "quit driver, then rerun",
+    );
   return true;
 };
 
 const installApp = async (): Promise<Outcome> => {
   if (!withApp) return skipped(`install ${APP}`, "--no-app");
+  await rm(STAGING, { recursive: true, force: true });
+  await must(
+    ["ditto", BUNDLE, STAGING],
+    `make ${dirname(APP)} writable, or copy it yourself: cp -R ${BUNDLE} ${dirname(APP)}/`,
+  );
   const wasRunning = await quitInstalled();
   await rm(APP, { recursive: true, force: true });
-  await must(["ditto", BUNDLE, APP], `cp -R ${BUNDLE} ${APP}`);
+  await rename(STAGING, APP);
   if (wasRunning) await must(["open", APP], `open ${APP}`);
   return done(`install ${APP}${wasRunning ? " (restarted it)" : ""}`);
 };
@@ -104,27 +130,50 @@ const makeRoot = async (): Promise<Outcome> => {
   return done(`mkdir ${ROOT}`);
 };
 
+const CONFIG_FILES = ["opencode.jsonc", "opencode.json"].map((name) => join(OPENCODE_DIR, name));
+
+const parseConfig = (path: string, text: string): unknown => {
+  try {
+    return Bun.JSONC.parse(text);
+  } catch (error) {
+    throw new StepFailed(`${path} is not valid JSONC: ${String(error)}`, `fix ${path}, then rerun`);
+  }
+};
+
 const readConfigs = async (): Promise<unknown[]> => {
-  const files = ["opencode.jsonc", "opencode.json"].map((name) =>
-    Bun.file(join(OPENCODE_DIR, name)),
+  const found = await Promise.all(
+    CONFIG_FILES.map(async (path) => {
+      const file = Bun.file(path);
+      return (await file.exists()) ? [parseConfig(path, await file.text())] : [];
+    }),
   );
-  const found = await Promise.all(files.map(async (file) => ((await file.exists()) ? file : null)));
-  const texts = await Promise.all(found.flatMap((file) => (file === null ? [] : [file.text()])));
-  return texts.map((text) => Bun.JSONC.parse(text));
+  return found.flat();
 };
 
 const ADD = ["opencode", "mcp", "add", "driver", "--global"];
 
 const addDriver = async (environment: Record<string, string>): Promise<void> => {
   const env = Object.entries(environment).flatMap(([key, value]) => ["--env", `${key}=${value}`]);
-  const fix = [...ADD, "--", ...COMMAND].join(" ");
-  await must([...ADD, ...env, "--", ...COMMAND], fix);
+  await must([...ADD, ...env, "--", ...COMMAND], [...ADD, "--", ...COMMAND].join(" "));
   if (registration(await readConfigs(), COMMAND).kind !== "current")
-    throw new StepFailed(`opencode mcp add did not write driver to ${OPENCODE_DIR}`, fix);
+    throw new StepFailed(
+      `opencode mcp add wrote driver to ${CONFIG_FILES[1]}, but the driver entry in ${CONFIG_FILES[0]} overrides it`,
+      `delete mcp.servers.driver from ${CONFIG_FILES[0]}, then rerun`,
+    );
+};
+
+const opencodeV2 = async (): Promise<void> => {
+  const version = (await must(["opencode", "--version"], "reinstall opencode")).replace(/^\D*/, "");
+  if (!Bun.semver.satisfies(version, ">=2.0.0"))
+    throw new StepFailed(
+      `opencode ${version} is too old: driver registers under mcp.servers`,
+      "opencode upgrade",
+    );
 };
 
 const registerOpencode = async (): Promise<Outcome> => {
   if (Bun.which("opencode") === null) return skipped("opencode", "opencode not installed");
+  await opencodeV2();
   const plan = registration(await readConfigs(), COMMAND);
   if (plan.kind === "current") return done(`opencode: driver already runs ${MAIN}`);
   await addDriver(plan.environment);
