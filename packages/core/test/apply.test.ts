@@ -220,6 +220,11 @@ describe("planApply", () => {
       { op: "task", id: "t4-coa", status: { kind: "blocked", on: "new task", by: "new-one" } },
       { op: "task", id: "new-one", phase: "canaries", title: "new one", after: "t4-transit-times" },
     ]);
+    expect(task(project, "t4-coa").status).toEqual({
+      kind: "blocked",
+      on: "new task",
+      by: "new-one",
+    });
     expect(task(project, "new-one").label).toBe("02.2");
     expect(task(project, "t4-authorization-platform").label).toBe("02.3");
   });
@@ -306,7 +311,10 @@ describe("planApply", () => {
       },
       NOW,
     );
-    expect(result.kind).toBe("error");
+    expect(result).toEqual({
+      kind: "error",
+      message: 'task "t4-directory": blocked_by "ghost" is not a task',
+    });
   });
 
   it("writes temps (dot-prefixed) first, then renumber renames, then temp renames, then removes", () => {
