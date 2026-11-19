@@ -11,6 +11,7 @@ import {
   writeLog,
 } from "./format.ts";
 import {
+  ID_PATTERN,
   IdSchema,
   LogFrontmatterSchema,
   PhaseFrontmatterSchema,
@@ -84,11 +85,10 @@ export type Project = Omit<ProjectData, "phases"> & {
 };
 
 const HIDDEN = /(^|\/)\./;
-const ID = "[a-z0-9][a-z0-9._-]*";
 const PREFIX = "\\d+[a-z]?";
 const ROOT_PATH = /^(project|log)\.md$/;
-const PHASE_PATH = new RegExp(`^(${PREFIX})-(${ID})/phase\\.md$`);
-const TASK_PATH = new RegExp(`^(${PREFIX})-(${ID})/(${PREFIX})-(${ID})\\.md$`);
+const PHASE_PATH = new RegExp(`^(${PREFIX})-(${ID_PATTERN})/phase\\.md$`);
+const TASK_PATH = new RegExp(`^(${PREFIX})-(${ID_PATTERN})/(${PREFIX})-(${ID_PATTERN})\\.md$`);
 const CLOSED = new Set<Status["kind"]>(["done", "skipped"]);
 
 /**

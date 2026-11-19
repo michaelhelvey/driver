@@ -3,6 +3,14 @@ import { z } from "zod";
 const RESERVED_IDS = new Set(["project", "log"]);
 
 /**
+ * The regex source of an id, without anchors, for building path patterns.
+ *
+ * @example
+ * new RegExp(`^\\d+-(${ID_PATTERN})$`).test("03a-framework-apps");
+ */
+export const ID_PATTERN = "[a-z0-9][a-z0-9._-]*";
+
+/**
  * A project slug, phase id, or task id: the file or folder name without its `NN-` prefix.
  *
  * @example
@@ -11,7 +19,7 @@ const RESERVED_IDS = new Set(["project", "log"]);
  */
 export const IdSchema = z
   .string()
-  .regex(/^[a-z0-9][a-z0-9._-]*$/, "use lowercase letters, digits, `.`, `_` and `-`")
+  .regex(new RegExp(`^${ID_PATTERN}$`), "use lowercase letters, digits, `.`, `_` and `-`")
   .refine((id) => !RESERVED_IDS.has(id), "`project` and `log` are reserved");
 
 /**
