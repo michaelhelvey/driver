@@ -178,7 +178,7 @@ describe("driver desktop", () => {
     await expect($("main")).toHaveText(expect.stringContaining("10 of 27 tasks done"));
   });
 
-  it("keeps focus on the cursor row when an MCP apply moves it", async () => {
+  it("keeps focus on the cursor row when an MCP apply moves it to the end of its phase", async () => {
     await browser.keys(["Meta", "k"]);
     await expect($(`[role=dialog] [data-slot="command-input"]`)).toBeFocused();
     await browser.keys("t4-coa".split(""));
@@ -190,22 +190,22 @@ describe("driver desktop", () => {
 
     await apply({
       slug: "pdk-2-sentry",
-      log: "t4-coa waits for the dashboard now.",
-      ops: [{ op: "task", id: "t4-coa", after: "t4-developer-dashboard" }],
+      log: "t4-coa waits for the rest of its phase now.",
+      ops: [{ op: "task", id: "t4-coa", after: "t4-midstream-insights" }],
     });
     await browser.waitUntil(
       async () =>
         (await $$(`main [data-kind="task"]`).map((row) => row.getAttribute("data-row")))
           .join(" ")
-          .includes("task:t4-developer-dashboard task:t4-coa"),
-      { timeout: 1000, timeoutMsg: "t4-coa did not move below t4-developer-dashboard" },
+          .includes("task:t4-midstream-insights task:t4-coa"),
+      { timeout: 1000, timeoutMsg: "t4-coa did not move below t4-midstream-insights" },
     );
     await browser.waitUntil(async () => (await focusedRow()) === "task:t4-coa", {
       timeout: 1000,
       timeoutMsg: "focus left t4-coa when it moved",
     });
-    await browser.keys("j");
-    await expect(cursorRow()).toHaveAttribute("data-row", "task:t4-user-interactions-api");
+    await browser.keys("k");
+    await expect(cursorRow()).toHaveAttribute("data-row", "task:t4-midstream-insights");
   });
 
   it("closes the reader when its handle collapses it, so the next activate opens it", async () => {
