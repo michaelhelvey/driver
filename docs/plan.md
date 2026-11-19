@@ -19,8 +19,8 @@ the reference for layout, colors, type, and keys. Its JavaScript is a throwaway;
 
 ## Non-goals
 
-- Tracking whether an agent is running. The user has a terminal harness (Rex) for that. There is no
-  `agent` field, no heartbeat, and no liveness check.
+- Tracking whether an agent is running. The user's agent harness (OpenCode, Rex, …) handles that.
+  There is no `agent` field, no heartbeat, and no liveness check.
 - Editing from the UI. The user talks to the coordinator in the terminal.
 - Sync, accounts, or anything that is not on the local disk.
 
@@ -49,7 +49,6 @@ the reference for layout, colors, type, and keys. Its JavaScript is a throwaway;
 ---
 title: pdk-2-sentry
 repo: ~/dev/t4/t4-platform-lambda
-rex: 01JD7Q3V8MZ4-... # optional, see "Rex keys"
 started: 2026-11-10
 updated: 2026-11-19T07:38:00Z
 ---
@@ -160,12 +159,11 @@ code as the zod schemas' `.describe()` text, so the agent's docs and the validat
 
 ### Write
 
-**`create_project({ slug, title, repo, summary, rex? })`**
+**`create_project({ slug, title, repo, summary })`**
 
 > Create a new project directory with `project.md` and an empty `log.md`. `summary` is the free-text
-> paragraph shown at the top of the project page: what this project is and where it stands. `rex` is
-> optional: your `$REX_SESSION`, so the user can jump to you from the UI. Leave it out if
-> `$REX_SESSION` is not set; never guess it. Fails if the slug already exists.
+> paragraph shown at the top of the project page: what this project is and where it stands. Fails if
+> the slug already exists.
 
 **`apply(slug, { log, ops })`**
 
@@ -295,8 +293,8 @@ cannot disagree.
 ### `apps/desktop`
 
 - Tauri v2. The Rust side stays tiny: `tauri-plugin-fs` scoped read-only to `$HOME/.driver/**` with
-  the `watch` feature, `tauri-plugin-clipboard-manager` for `y`. No custom Rust commands unless
-  something can't be done from the plugins.
+  the `watch` feature, `tauri-plugin-clipboard-manager` for `y` and `c`. No custom Rust commands
+  unless something can't be done from the plugins.
 - Frontend: Vite + Solid 2 (`solid-js` and `@solidjs/web` 2.x) + `@ui-sdk/solid` + Tailwind v4
   (`@tailwindcss/vite`).
 - Data flow: a `FileSource` interface (`slugs()`, `readProject(slug)`, `watch(onChange)`) with two
@@ -337,17 +335,13 @@ is in a text input.
   (`data-highlighted:bg-focus`). Put `@layer ui-sdk;` above `@import "tailwindcss";`.
 - Keep the mockup's paper grain overlay and `<meta name="darkreader-lock">`.
 
-### Rex keys (last milestone)
+### Keyboard
 
-`c` and `o` shell out to `rex` when the project has a `rex:` session id. They are one command per
-key press; nothing polls Rex.
+The keymap is the mockup's `?` sheet, with two changes:
 
-- `c`: `rex send -s <rex> 're <id> (<title>): '` then select that session, so the user lands in the
-  coordinator's prompt with a reference to the item under the cursor.
-- `o`: `rex split -s <rex> --split=right --ratio 40 -- nvim -R <path>`.
-
-Needs `tauri-plugin-shell` with an allowlist for the `rex` binary only. Ship `c` first, then `o`.
-Both keys do nothing when the project has no `rex` field.
+- `c` copies `re <id> (<title>): <path>` for the item under the cursor to the clipboard, for pasting
+  into any coordinator, in any harness. driver talks to no harness and stores no session ids.
+- `o` is not part of the keymap.
 
 ## Milestones
 
@@ -375,7 +369,6 @@ Each milestone ends with `bun run validate` green and the listed check passing.
    drives the full key flow (move, open reader, focus reader, raw, filter, palette jump across
    projects, fold, `b`, `g n`) with no mouse; `@solidjs/diagnostics` `expectNoDiagnostics` on the
    main flows.
-6. **Rex keys.** See above. Ship `c` first, then `o`.
 
 ## Verification for the user
 
@@ -397,8 +390,9 @@ bun --cwd apps/desktop tauri dev
 
 - No `broken` status. An agent's own failure is `needs-you` with the error as the `ask`, not
   `doing`, which hides it. The `apply` tool description says so.
-- Rex keys stay (milestone 6). `c` ships first, `o` second. `rex` stays optional: `create_project`
-  sets it only when the agent passes it, and nothing guesses it.
+- No coordinator session ids. `project.md` has no session field and driver runs no harness commands,
+  so it works the same from any harness, terminal, or phone. `c` copies a text reference to paste
+  into the coordinator; `o` is dropped.
 - Tool descriptions only, no skill or prompt. The file contract (status kinds, the fields each one
   needs, "failures are `needs-you`") lives in the `create_project` and `apply` `.describe()` text,
   made from the zod schemas where practical.
