@@ -221,8 +221,8 @@ function Search(props: PaletteProps) {
 
 /**
  * The command palette (`⌘K`): what needs the user in every project, the projects, every task
- * once something is typed, and the commands, searched fuzzily. Escape or `⌘K` again closes it, as
- * in the mockup. Choosing one closes the palette, then jumps or runs it. Each open starts with an
+ * once something is typed, and the commands, searched fuzzily. Escape or `⌘K` again closes it.
+ * Choosing one closes the palette, then jumps or runs it. Each open starts with an
  * empty search, even when it reopens while the last one is still closing.
  *
  * @example

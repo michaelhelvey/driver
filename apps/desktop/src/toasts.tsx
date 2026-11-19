@@ -33,7 +33,7 @@ export function createToasts(): { toaster: Toaster; notify: Notify } {
 }
 
 /**
- * The toast region, bottom right over the status line, styled like the mockup's toast.
+ * The toast region, bottom right over the status line: a card in ink, plum for errors.
  *
  * @example
  * <Toasts toaster={toasts.toaster} />

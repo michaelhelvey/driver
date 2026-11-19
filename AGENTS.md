@@ -11,9 +11,9 @@
 ## Project
 
 - The build plan is [`docs/plan.md`](docs/plan.md). Read it before you start work.
-- The design reference is [`mockups/driver.html`](mockups/driver.html). Open it in a browser and
-  press `?`. `mockups/` is excluded from `vp fmt`: the formatter indents the embedded files and
-  breaks their frontmatter.
+- The look is the app itself: its design tokens are the CSS variables in
+  [`apps/desktop/src/styles.css`](apps/desktop/src/styles.css), and its keymap is the `KEYS` table
+  in [`apps/desktop/src/keys.ts`](apps/desktop/src/keys.ts) (what `?` shows in the app).
 
 ## References
 
@@ -74,7 +74,8 @@ beta, so check the installed docs, not memory.
   (`data-highlighted:bg-focus`). See https://ui-sdk.dev/docs/core/kernel/style-a-component and
   https://ui-sdk.dev/docs/solid/styling-and-animation.md.
 - Put `@layer ui-sdk;` above `@import "tailwindcss";` in the global stylesheet.
-- Design tokens come from the CSS variables in `mockups/driver.html`.
+- Design tokens are the CSS variables in `apps/desktop/src/styles.css`, exposed to Tailwind by its
+  `@theme`. Use them; do not add raw colors.
 - `"Berkeley Mono"` is installed on the user's machine. Reference it by name. Do not bundle it.
 
 ### Tauri v2

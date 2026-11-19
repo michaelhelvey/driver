@@ -98,7 +98,7 @@ const renderer: RendererObject = {
 const marked = new Marked({ gfm: true, breaks: false, async: false, renderer });
 
 /**
- * Renders agent-written markdown as HTML the way the mockup draws it: a faint `##` before each
+ * Renders agent-written markdown as HTML: a faint `##` before each
  * heading, `[x]` / `[ ]` boxes on steps, a `$ ` prompt on `sh` lines, muted comment lines and
  * `# →` result lines in sage, `#412` refs in the accent color. Nothing in the source reaches the
  * page as markup: raw HTML is shown as text, images as their alt text, and only `http(s):` and

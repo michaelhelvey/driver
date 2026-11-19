@@ -10,7 +10,7 @@ const reactOff = Object.fromEntries(
 
 export default await defineConfig({
   fmt: {
-    ignorePatterns: ["mockups/**", "packages/*/fixtures/**", "apps/desktop/src-tauri/**"],
+    ignorePatterns: ["packages/*/fixtures/**", "apps/desktop/src-tauri/**"],
   },
   lint: {
     rules: {

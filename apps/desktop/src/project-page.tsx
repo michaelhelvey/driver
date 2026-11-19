@@ -415,7 +415,7 @@ function Overview(props: PageProps) {
 }
 
 /**
- * One project's page, laid out like the mockup: header, headline, what needs the user, what is
+ * One project's page, top to bottom: header, headline, what needs the user, what is
  * blocked, the recent log, and the phases with their tasks, all rows of one cursor list. When the
  * project's files do not parse, the page shows the error that names the file.
  *

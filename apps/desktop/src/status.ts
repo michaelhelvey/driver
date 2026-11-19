@@ -1,7 +1,7 @@
 import type { Status } from "@driver/core";
 
 /**
- * How the mockup draws each task status: its glyph, the glyph's color class, and the color
+ * How the app draws each task status: its glyph, the glyph's color class, and the color
  * class of its segment in a phase's bar.
  */
 export const STATUS: Readonly<

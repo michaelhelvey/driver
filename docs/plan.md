@@ -4,9 +4,9 @@ driver is a read-only desktop view of agent-run projects. Each project is a fold
 under `~/.driver/`. A coordinator agent writes the files through a local MCP server. The desktop app
 only reads them and shows what needs the user, what is blocked, and how far the project is.
 
-The visual design and the keymap are set by the mockup:
-[`mockups/driver.html`](../mockups/driver.html). Open it in a browser and press `?`. The mockup is
-the reference for layout, colors, type, and keys. Its JavaScript is a throwaway; do not port it.
+The app is its own design reference: the tokens are the CSS variables in
+[`apps/desktop/src/styles.css`](../apps/desktop/src/styles.css), and the keymap is the `KEYS` table
+in [`apps/desktop/src/keys.ts`](../apps/desktop/src/keys.ts). Run it and press `?`.
 
 ## Goals
 
@@ -19,8 +19,8 @@ the reference for layout, colors, type, and keys. Its JavaScript is a throwaway;
 
 ## Non-goals
 
-- Tracking whether an agent is running. The user's agent harness (OpenCode, Rex, …) handles that.
-  There is no `agent` field, no heartbeat, and no liveness check.
+- Tracking whether an agent is running. The user's agent harness (OpenCode, Claude Code, …) handles
+  that. There is no `agent` field, no heartbeat, and no liveness check.
 - Editing from the UI. The user talks to the coordinator in the terminal.
 - Sync, accounts, or anything that is not on the local disk.
 
@@ -76,8 +76,7 @@ Phase 00 complete: #46 merged as 3a24ff6, deploy_beta 44154822350 green.
 t4-transit-times is on alpha. Waiting for the forced crash to land in Sentry.
 ```
 
-Oldest first, so a write is a true append. The UI shows it newest first. (The mockup's sample
-`log.md` files are newest first; ignore that.)
+Oldest first, so a write is a true append. The UI shows it newest first.
 
 ### `phase.md`
 
@@ -262,7 +261,6 @@ driver/                        # bun workspace
   packages/core/               # schemas + parse + plan. Pure TS, no fs, no Node APIs.
   packages/mcp/                # stdio MCP server (bun). The only writer.
   apps/desktop/                # Tauri v2 + Solid 2 + @ui-sdk/solid + Tailwind v4. Read-only.
-  mockups/driver.html          # design reference
   docs/plan.md                 # this file
 ```
 
@@ -301,9 +299,9 @@ cannot disagree.
   implementations: Tauri fs (real app) and an in-memory fixture (dev in a browser, tests). Files go
   through `parseProject` from `packages/core`. On a change, re-read only the changed project
   (debounce 100ms).
-- Markdown rendering: `marked` with custom renderers to match the mockup (faint `##` before
-  headings, `[x]` / `[ ]` task boxes, `$ ` prompt on `sh` blocks, comment lines muted, `# →` result
-  lines in sage). Escape everything; files are agent-written text.
+- Markdown rendering: `marked` with custom renderers (faint `##` before headings, `[x]` / `[ ]` task
+  boxes, `$ ` prompt on `sh` blocks, comment lines muted, `# →` result lines in sage). Escape
+  everything; files are agent-written text.
 
 #### Components from ui-sdk
 
@@ -326,32 +324,32 @@ is in a text input.
 
 #### Styling
 
-- Tokens from the mockup's CSS variables (`--bg`, `--ink`, `--accent`, `--amber`, `--plum`,
-  `--sage`, ...) as a Tailwind v4 `@theme`, with `paper` and `cocoa` themes switched by `data-theme`
-  on `<html>`.
+- Tokens are CSS variables in `apps/desktop/src/styles.css` (`--bg`, `--ink`, `--accent`, `--amber`,
+  `--plum`, `--sage`, ...) as a Tailwind v4 `@theme`, with `paper` and `cocoa` themes switched by
+  `data-theme` on `<html>`.
 - Font: `"Berkeley Mono"` is installed locally on the user's machine. Reference it by name; do not
   bundle it.
 - Style ui-sdk parts by `data-slot` and state attributes with Tailwind variants
   (`data-highlighted:bg-focus`). Put `@layer ui-sdk;` above `@import "tailwindcss";`.
-- Keep the mockup's paper grain overlay and `<meta name="darkreader-lock">`.
+- Keep the paper grain overlay and `<meta name="darkreader-lock">`.
 
 ### Keyboard
 
-The keymap is the mockup's `?` sheet, with two changes:
+The keymap is the `KEYS` table in `apps/desktop/src/keys.ts`, which the `?` sheet shows. Of note:
 
 - `c` copies `re <id> (<title>): <path>` for the item under the cursor to the clipboard, for pasting
-  into any coordinator, in any harness. driver talks to no harness and stores no session ids.
-- `o` is not part of the keymap.
+  into any coordinator, in any harness. driver talks to no harness.
+- There is no key that opens a file in an editor.
 
 ## Milestones
 
 Each milestone ends with `bun run validate` green and the listed check passing.
 
 1. **Workspace + core.** Convert the repo to a bun workspace. `packages/core` with schemas,
-   `parseProject`, `planApply`. Fixtures: the mockup's `pdk-2-sentry` and `driver` projects as real
-   files under `packages/core/fixtures/`. _Check:_ table tests (`it.each`) parse the fixtures and
-   assert ids, labels, percent, "now in", step counts; `planApply` cases for create, update, move,
-   reorder, status change, bad `blocked_by`, missing `ask`.
+   `parseProject`, `planApply`. Fixtures: sample `pdk-2-sentry` and `driver` projects as real files
+   under `packages/core/fixtures/`. _Check:_ table tests (`it.each`) parse the fixtures and assert
+   ids, labels, percent, "now in", step counts; `planApply` cases for create, update, move, reorder,
+   status change, bad `blocked_by`, missing `ask`.
 2. **MCP server.** `packages/mcp` with the six tools. _Check:_ an e2e test starts the server over
    stdio with the MCP client SDK against a temp copy of the fixtures, calls every tool, and asserts
    the files on disk and a re-parse. A test runs two `apply` calls at once and asserts both land and
@@ -361,14 +359,12 @@ Each milestone ends with `bun run validate` green and the listed check passing.
    behaviors, single cursor, `j`/`k`). _Check:_ `bun tauri dev` opens the window; editing a fixture
    file updates the page within a second; one test drives the list with keys and passes
    `expectNoDiagnostics`.
-4. **Project page to parity with the mockup.** Sidebar, header, headline, needs you, blocked,
-   recent, phases, reader pane with rendered and raw views, both themes. _Check:_ side-by-side
-   screenshots against `mockups/driver.html` with the same fixture data.
-5. **Keyboard.** Every key in the mockup's `?` sheet, on top of the M3 list primitive. Palette,
-   filter, help, toasts. _Check:_ Playwright against the browser build with the fixture source
-   drives the full key flow (move, open reader, focus reader, raw, filter, palette jump across
-   projects, fold, `b`, `g n`) with no mouse; `@solidjs/diagnostics` `expectNoDiagnostics` on the
-   main flows.
+4. **Project page.** Sidebar, header, headline, needs you, blocked, recent, phases, reader pane with
+   rendered and raw views, both themes. _Check:_ screenshots of the browser build on the fixtures.
+5. **Keyboard.** Every key in the `?` sheet, on top of the M3 list primitive. Palette, filter, help,
+   toasts. _Check:_ Playwright against the browser build with the fixture source drives the full key
+   flow (move, open reader, focus reader, raw, filter, palette jump across projects, fold, `b`,
+   `g n`) with no mouse; `@solidjs/diagnostics` `expectNoDiagnostics` on the main flows.
 
 ## Verification for the user
 
@@ -390,9 +386,9 @@ bun --cwd apps/desktop tauri dev
 
 - No `broken` status. An agent's own failure is `needs-you` with the error as the `ask`, not
   `doing`, which hides it. The `apply` tool description says so.
-- No coordinator session ids. `project.md` has no session field and driver runs no harness commands,
-  so it works the same from any harness, terminal, or phone. `c` copies a text reference to paste
-  into the coordinator; `o` is dropped.
+- No link to the coordinator. `project.md` names no agent session and driver runs no harness
+  commands, so it works the same from any harness, terminal, or phone. `c` copies a text reference
+  to paste into the coordinator.
 - Tool descriptions only, no skill or prompt. The file contract (status kinds, the fields each one
   needs, "failures are `needs-you`") lives in the `create_project` and `apply` `.describe()` text,
   made from the zod schemas where practical.

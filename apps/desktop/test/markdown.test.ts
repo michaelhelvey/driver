@@ -185,7 +185,7 @@ describe("renderMarkdown escapes agent-written text", () => {
   });
 });
 
-describe("renderMarkdown draws the mockup's markdown", () => {
+describe("renderMarkdown decorates headings, steps and shell blocks", () => {
   it.each([
     {
       name: "a faint hash before headings",

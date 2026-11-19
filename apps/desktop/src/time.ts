@@ -1,7 +1,7 @@
 import { createSignal, onSettled, type Accessor } from "solid-js";
 
 /**
- * How long ago `iso` was, as the mockup writes it: `now`, `12m`, `3h`, `2d`.
+ * How long ago `iso` was, in the largest whole unit: `now`, `12m`, `3h`, `2d`.
  *
  * @example
  * ago("2026-11-19T07:02:00Z", Date.parse("2026-11-19T07:40:00Z")); // "38m"

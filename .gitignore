@@ -36,9 +36,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # clankers
 .pi
 
-# parity screenshots (apps/desktop/scripts/parity.ts)
-apps/desktop/parity
-
 # tauri
 apps/desktop/src-tauri/target
 apps/desktop/src-tauri/gen

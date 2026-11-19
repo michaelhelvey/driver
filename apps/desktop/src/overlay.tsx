@@ -2,7 +2,7 @@ import type { JSX } from "@solidjs/web";
 import { Dialog, DialogBackdrop, DialogContent, DialogTitle } from "@ui-sdk/solid/dialog";
 
 /**
- * A modal card over a blurred page, like the mockup's palette and keys sheet. Escape and a press
+ * A modal card over a blurred page, for the palette and the keys sheet. Escape and a press
  * outside close it; focus goes where `finalFocus` says, since nothing on the page opens it.
  *
  * @example
