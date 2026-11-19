@@ -47,6 +47,22 @@ describe("driver desktop", () => {
     expect(results).toEqual(["allowed", "denied", "denied"]);
   });
 
+  it("runs no inline script, and allows the inline styles ui-sdk injects", async () => {
+    const result = await browser.execute(() => {
+      const script = document.createElement("script");
+      script.textContent = "document.documentElement.dataset.injected = 'ran'";
+      document.head.append(script);
+      const style = document.createElement("style");
+      style.textContent = "body { outline-offset: 7px; }";
+      document.head.append(style);
+      const applied = getComputedStyle(document.body).outlineOffset;
+      style.remove();
+      script.remove();
+      return { injected: document.documentElement.dataset.injected ?? "blocked", applied };
+    });
+    expect(result).toEqual({ injected: "blocked", applied: "7px" });
+  });
+
   it("shows pdk-2-sentry at 33%", async () => {
     await browser.keys("2");
     await expect($("h1")).toHaveText("pdk-2-sentry");
