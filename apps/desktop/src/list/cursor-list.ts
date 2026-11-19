@@ -2,6 +2,7 @@ import {
   createChange,
   createRovingFocus,
   definePrimitive,
+  keepFocus,
   type ChangeDetails,
   type RovingFocusMoveContext,
 } from "@ui-sdk/core";
@@ -43,7 +44,12 @@ const move = (
  * The main keyboard list: rows with a single cursor that `j`/`k`, the arrows, Home and End move,
  * and Enter or a click activates. The list is one tab stop, on the cursor row. It renders as a
  * WAI-ARIA listbox whose selection follows the cursor. Letter keys other than `j`/`k` are left
- * to the app's keymap (no typeahead).
+ * to the app's keymap (no typeahead). Each row carries its key as `data-row`.
+ *
+ * Focus stays on the cursor row while rows re-render under it: a live file change can move the
+ * focused row (a reorder) or replace it, and browsers drop focus to the page without a reliable
+ * event when that happens. While the list holds focus (focus went into a row and did not go to
+ * another element on purpose), any change to the rows puts focus back on the cursor row.
  *
  * @example
  * const { Root: CursorList, Row: CursorListRow } = createParts(cursorList, { root: "div", row: "div" });
@@ -67,6 +73,11 @@ export const cursorList = definePrimitive({
   sync: (options) => (options.cursor === undefined ? {} : { cursor: options.cursor }),
   api: (context) => {
     const change = createChange(context);
+    const cursorRow = () => {
+      const { cursor } = context.store.get();
+      return cursor === null ? undefined : context.element("row", cursor);
+    };
+    let holding = false;
     const roving = createRovingFocus(context, {
       slot: "row",
       key: "focused",
@@ -82,6 +93,16 @@ export const cursorList = definePrimitive({
     return {
       roving,
       activate,
+      hold: (held: boolean) => {
+        holding = held;
+      },
+      watch(el: HTMLElement) {
+        const observer = new MutationObserver(() => {
+          if (holding) keepFocus(cursorRow);
+        });
+        observer.observe(el, { childList: true, subtree: true });
+        return () => observer.disconnect();
+      },
       keydown(event: KeyboardEvent, el: HTMLElement, key: string) {
         const moved = roving.keydown(event, el);
         if (moved !== undefined) {
@@ -97,6 +118,7 @@ export const cursorList = definePrimitive({
     root: slot({
       role: "listbox",
       keys: { none: "Each row handles the keys that move the cursor." },
+      bind: (el, part) => part.api.watch(el),
     }),
     row: slot<{ value: string }>({
       role: "option",
@@ -106,12 +128,16 @@ export const cursorList = definePrimitive({
         tabindex: part.api.roving.tabIndex(state, part),
         "aria-selected": String(state.cursor === part.key),
         "data-cursor": state.cursor === part.key ? "" : undefined,
+        "data-row": part.key,
       }),
       press: ({ api, key }, event) => api.activate(key, event),
       on: {
         keydown: (event, { el, api, key }) => {
           if (el) api.keydown(event, el, key);
         },
+        focusin: (_, { api }) => api.hold(true),
+        focusout: (event, { api }) =>
+          api.hold(event instanceof FocusEvent && event.relatedTarget === null),
       },
       bind: (el, part) => part.api.roving.bind(el, part),
     }),

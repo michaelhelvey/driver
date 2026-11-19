@@ -3,7 +3,7 @@ import { captureArtifact, expectNoDiagnostics } from "@solidjs/diagnostics";
 import { render } from "@solidjs/web";
 import { App } from "../src/app.tsx";
 import { memorySource } from "../src/source/memory.ts";
-import { fixtureTree, until, withStatus } from "./fixtures.ts";
+import { fixtureTree, sleep, until, withStatus } from "./fixtures.ts";
 
 const SKILLS = "pdk-2-sentry/01-framework/02-t4-agent-skills.md";
 const AUTH = "pdk-2-sentry/02-canaries/02-t4-authorization-platform.md";
@@ -130,6 +130,53 @@ it("lists pdk-2-sentry's rows in page order, with the finished phase folded", as
   press(" ");
   await until(() => phasesOf(rowsNow())[0]?.[1].length, 0);
 });
+
+const COA = "pdk-2-sentry/03a-framework-apps/01-t4-coa.md";
+
+const focusedKey = () =>
+  document.activeElement instanceof HTMLElement ? document.activeElement.dataset.row : undefined;
+
+const cursorKey = () => document.querySelector<HTMLElement>(`${LIST} [data-cursor]`)?.dataset.row;
+
+it.each([
+  [
+    "moves it to the end of its phase",
+    (text: string): [string, string][] => [[COA.replace("/01-", "/08-"), text]],
+  ],
+  [
+    "moves it to another phase",
+    (text: string): [string, string][] => [
+      [COA.replace("03a-framework-apps/01-", "04-cleanup/02-"), text],
+    ],
+  ],
+  [
+    "marks it needs-you, so it also shows above",
+    (text: string): [string, string][] => [
+      [COA, text.replace(/^status: .*$/m, "status: needs-you\nask: ship it?")],
+    ],
+  ],
+])(
+  "keeps focus and the cursor on the row under the cursor when a live change %s",
+  async (_, change) => {
+    const { tree, source, show } = await mount();
+    dispose = show();
+    await until(title, "driver");
+    press("2", document.body);
+    await until(title, "pdk-2-sentry");
+    focusList();
+    const coa = document.querySelector<HTMLElement>(`${LIST} [data-row="task:t4-coa"]`);
+    coa?.click();
+    coa?.focus();
+    await until(focusedKey, "task:t4-coa");
+
+    source.remove(COA);
+    change(tree.get(COA) ?? "").forEach(([path, text]) => source.write(path, text));
+
+    await until(() => document.body.textContent.includes("t4-coa"), true);
+    await sleep(300);
+    expect([cursorKey(), focusedKey()]).toEqual(["task:t4-coa", "task:t4-coa"]);
+  },
+);
 
 it("says where it looks, and when to restart, when the root has no projects", async () => {
   const root = document.body.appendChild(document.createElement("div"));
