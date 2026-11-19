@@ -15,8 +15,7 @@ const press = (target: string, init: KeyboardEventInit) => {
   document.body.innerHTML = TARGETS[target] ?? "";
   const ran: string[] = [];
   const stop = bindKeymap(document, { t: () => ran.push("t"), J: () => ran.push("J") });
-  const el =
-    document.body.querySelector("b, button, input, textarea, select, div") ?? document.body;
+  const el = [...document.body.querySelectorAll(":not(option)")].at(-1) ?? document.body;
   el.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init }));
   stop();
   return ran;
