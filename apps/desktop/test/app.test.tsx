@@ -6,6 +6,7 @@ import { memorySource } from "../src/source/memory.ts";
 import { fixtureTree, until, withStatus } from "./fixtures.ts";
 
 const SKILLS = "pdk-2-sentry/01-framework/02-t4-agent-skills.md";
+const AUTH = "pdk-2-sentry/02-canaries/02-t4-authorization-platform.md";
 const LIST = `main [aria-label="Project"]`;
 
 const percent = () =>
@@ -14,6 +15,10 @@ const percent = () =>
 const title = () => document.querySelector("h1")?.textContent;
 
 const cursorRow = () => document.querySelector(`${LIST} [data-cursor]`)?.textContent;
+
+const readerPath = () => document.querySelector("[data-testid=reader-path]")?.textContent;
+
+const raw = () => document.querySelector("[data-testid=reader-raw]")?.textContent;
 
 const press = (key: string, target: Element | null = document.activeElement) =>
   (target ?? document.body).dispatchEvent(
@@ -39,13 +44,25 @@ const moveCursor = async () => {
   await until(() => cursorRow()?.includes("t4-authorization-platform"), true);
 };
 
+const readAuthPlatform = async (file: string) => {
+  press("Enter");
+  await until(readerPath, "fixtures/pdk-2-sentry/02-canaries/02-t4-authorization-platform.md");
+  expect(document.querySelector("[aria-label=Reader] h2")?.textContent).toBe(
+    "t4-authorization-platform",
+  );
+  press("r");
+  await until(raw, file.replace(/\n$/, ""));
+  press("Enter");
+  await until(readerPath, undefined);
+};
+
 let dispose = () => {};
 afterEach(() => {
   dispose();
   document.body.innerHTML = "";
 });
 
-it("loads the fixtures, follows a file change and moves the list cursor, with no diagnostics", async () => {
+it("loads the fixtures, follows a file change, moves the cursor and opens the reader, with no diagnostics", async () => {
   const { tree, source, show } = await mount();
 
   const { artifact } = await captureArtifact(
@@ -63,13 +80,14 @@ it("loads the fixtures, follows a file change and moves the list cursor, with no
       expect(document.body.textContent).toContain("10 of 27 tasks done · 1 skipped");
 
       await moveCursor();
+      await readAuthPlatform(tree.get(AUTH) ?? "");
 
       press("J", document.body);
       await until(title, "billing-ledger-v2");
       press("K", document.body);
       await until(title, "pdk-2-sentry");
     },
-    { scenario: "load, follow a change, move the cursor" },
+    { scenario: "load, follow a change, move the cursor, open the reader" },
   );
 
   expectNoDiagnostics(artifact);

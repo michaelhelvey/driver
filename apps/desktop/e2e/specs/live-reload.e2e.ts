@@ -69,9 +69,25 @@ describe("driver desktop", () => {
     await expect($("[data-testid=headline-percent]")).toHaveText("33%");
   });
 
+  it("renders under the CSP: the stylesheet, the font by name, and the grain", async () => {
+    const page = await browser.execute(() => ({
+      background: getComputedStyle(document.body).backgroundColor,
+      font: getComputedStyle(document.body).fontFamily,
+      berkeley: document.fonts.check(`13px "Berkeley Mono"`),
+      grain: getComputedStyle(document.body, "::after").backgroundImage.split(",")[0],
+      theme: document.documentElement.dataset.theme,
+    }));
+    console.log(`page under the CSP: ${JSON.stringify(page)}`);
+    expect(page.background).toMatch(/^rgb\((244, 237, 225|29, 25, 21)\)$/);
+    expect(page.font).toContain("Berkeley Mono");
+    expect(page.grain).toBe(`url("data:image/svg+xml;utf8`);
+  });
+
   it("follows an edit made on disk within a second, without a reload", async () => {
+    const before = await $("html").getAttribute("data-theme");
+    const flipped = before === "cocoa" ? "paper" : "cocoa";
     await browser.keys("t");
-    await expect($("html")).toHaveAttribute("data-theme", "cocoa");
+    await expect($("html")).toHaveAttribute("data-theme", flipped);
 
     const percent = await $("[data-testid=headline-percent]").getElement();
     await markDone(join(await root(), SKILLS));
@@ -85,7 +101,22 @@ describe("driver desktop", () => {
     console.log(`headline reached 37% ${elapsed}ms after the write`);
     expect(elapsed).toBeLessThan(1000);
 
-    await expect($("html")).toHaveAttribute("data-theme", "cocoa");
+    await expect($("html")).toHaveAttribute("data-theme", flipped);
     await expect($("main")).toHaveText(expect.stringContaining("10 of 27 tasks done"));
+  });
+
+  it("opens the cursor row in the reader, rendered and raw", async () => {
+    const path = join("pdk-2-sentry", "02-canaries", "02-t4-authorization-platform.md");
+    await $(`main [data-kind="attention"]`).click();
+    await expect($("[data-testid=reader-path]")).toHaveText(expect.stringContaining(path));
+    await expect($("[aria-label=Reader] h2")).toHaveText("t4-authorization-platform");
+    await browser.keys("r");
+    const raw = await readFile(join(await root(), path), "utf8");
+    await expect($("[data-testid=reader-raw]")).toHaveText(raw.split("\n")[0] ?? "", {
+      containing: true,
+    });
+    expect(await $("[data-testid=reader-raw]").getProperty("textContent")).toBe(
+      raw.replace(/\n$/, ""),
+    );
   });
 });

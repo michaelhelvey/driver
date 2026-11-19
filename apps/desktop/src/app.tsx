@@ -1,10 +1,16 @@
-import { Resizable, ResizableHandle, ResizablePanel } from "@ui-sdk/solid/resizable";
-import { createMemo, createSignal, Match, onSettled, Show, Switch } from "solid-js";
+import {
+  createResizableController,
+  Resizable,
+  ResizableHandle,
+  ResizablePanel,
+} from "@ui-sdk/solid/resizable";
+import { createEffect, createMemo, createSignal, Match, onSettled, Show, Switch } from "solid-js";
 import { bindKeymap, type Keymap } from "./keymap.ts";
 import { Pane } from "./pane.tsx";
 import { ProjectPage, type PageProps } from "./project-page.tsx";
 import type { Entry } from "./projects.ts";
-import { cursorRow, isFinished, phaseIdOf, rowsOf, visibleRows } from "./rows.ts";
+import { Reader, type ReaderProps } from "./reader.tsx";
+import { cursorRow, isFinished, phaseIdOf, rowsOf, visibleRows, type Row } from "./rows.ts";
 import { Sidebar } from "./sidebar.tsx";
 import type { FileSource } from "./source/source.ts";
 import { createProjects } from "./state.ts";
@@ -47,6 +53,8 @@ function Empty(props: { root: string }) {
   );
 }
 
+const readerWidth = (): `${number}px` => `${Math.round(Math.min(window.innerWidth * 0.46, 700))}px`;
+
 const count = (entries: Entry[], kind: "needsYou" | "blocked") =>
   entries.reduce((sum, entry) => sum + (entry.kind === "ok" ? entry.project[kind].length : 0), 0);
 
@@ -54,16 +62,17 @@ const filesOf = (entries: Entry[]) =>
   entries.reduce((sum, entry) => sum + (entry.kind === "ok" ? entry.files.size : 0), 0);
 
 /**
- * The whole app over one {@link FileSource}: the project sidebar, the open project's page, and
- * the status line.
+ * The whole app over one {@link FileSource}: the project sidebar, the open project's page, the
+ * reader beside it, and the status line.
  *
  * @example
  * render(() => <App source={fixtureSource()} />, document.body);
  */
 export function App(props: { source: FileSource }) {
   const projects = createProjects(() => props.source);
-  const view = createView();
+  const view = createView(() => cursor()?.key);
   const now = createNow();
+  const split = createResizableController();
   const [selected, setSelected] = createSignal<string | null>(null, { name: "selected" });
 
   const current = createMemo(
@@ -94,7 +103,7 @@ export function App(props: { source: FileSource }) {
     if (slug !== undefined) run(slug);
   };
   const onCursor = (key: string) => inOpen((slug) => view.setCursor(slug, key));
-  const onActivate = (key: string) => inOpen((slug) => view.setCursor(slug, key));
+  const onActivate = (key: string) => inOpen((slug) => view.activate(slug, key));
   const onFold = (phaseId: string) => inOpen((slug) => view.flipFold(slug, phaseId));
 
   const page = createMemo((): PageProps | undefined => {
@@ -116,6 +125,27 @@ export function App(props: { source: FileSource }) {
         };
   });
 
+  const readerOf = (entry: OkEntry | undefined, row: Row | undefined): ReaderProps | undefined =>
+    entry === undefined || row === undefined
+      ? undefined
+      : {
+          slug: entry.slug,
+          root: props.source.root,
+          project: entry.project,
+          row,
+          text: entry.files.get(row.path) ?? "",
+          raw: view.state.reader.raw,
+          now: now(),
+        };
+  const reader = createMemo(() =>
+    view.state.reader.open ? readerOf(open(), cursor()) : undefined,
+  );
+  const shown = createMemo(() => reader() !== undefined, { name: "shown" });
+  createEffect(shown, (isShown) => {
+    if (isShown) split.resize("reader", readerWidth());
+    else split.collapse("reader");
+  });
+
   const selectAt = (index: number) => {
     const entry = projects.list()[index];
     if (entry !== undefined) setSelected(entry.slug);
@@ -134,6 +164,8 @@ export function App(props: { source: FileSource }) {
     J: () => step(1),
     K: () => step(-1),
     t: toggleTheme,
+    r: () => view.toggleRaw(),
+    Escape: () => view.closeReader(),
     " ": foldAtCursor,
     ...Object.fromEntries(Array.from({ length: 9 }, (_, i) => [String(i + 1), () => selectAt(i)])),
   };
@@ -141,7 +173,7 @@ export function App(props: { source: FileSource }) {
 
   return (
     <div class="grid h-screen grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_26px]">
-      <Resizable class="min-h-0">
+      <Resizable controller={split} class="min-h-0">
         <ResizablePanel id="sidebar" defaultSize="252px" minSize="180px" maxSize="420px">
           <Sidebar
             entries={projects.list()}
@@ -174,6 +206,21 @@ export function App(props: { source: FileSource }) {
               </Switch>
             </Pane>
           </main>
+        </ResizablePanel>
+        <ResizableHandle
+          aria-label="Resize reader"
+          disabled={!shown()}
+          class="relative z-10 -mr-px w-px bg-rule outline-none focus-visible:bg-accent data-disabled:hidden data-dragging:bg-accent"
+        />
+        <ResizablePanel
+          id="reader"
+          collapsible
+          collapsedSize={0}
+          defaultSize={0}
+          minSize="320px"
+          class="min-w-0"
+        >
+          <Show when={reader()}>{(shownReader) => <Reader {...shownReader()} />}</Show>
         </ResizablePanel>
       </Resizable>
       <Show when={open()} fallback={<footer class="border-t border-rule bg-bg-sunk" />}>
