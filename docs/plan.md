@@ -164,8 +164,8 @@ code as the zod schemas' `.describe()` text, so the agent's docs and the validat
 
 > Create a new project directory with `project.md` and an empty `log.md`. `summary` is the free-text
 > paragraph shown at the top of the project page: what this project is and where it stands. `rex` is
-> optional: your `$REX_SESSION`, so the user can jump to you from the UI. Fails if the slug already
-> exists.
+> optional: your `$REX_SESSION`, so the user can jump to you from the UI. Leave it out if
+> `$REX_SESSION` is not set; never guess it. Fails if the slug already exists.
 
 **`apply(slug, { log, ops })`**
 
@@ -185,7 +185,10 @@ code as the zod schemas' `.describe()` text, so the agent's docs and the validat
 > - `{ op: "phase", id, title?, after?, body? }`: create, update, or reorder a phase. `after` is the
 >   id of the phase it should come after.
 > - `{ op: "task", id, phase?, after?, title?, repo?, pr?, status?, body? }`: create, update, move,
->   or reorder a task. Setting `phase` moves it to another phase.
+>   or reorder a task. Setting `phase` moves it to another phase. `after` is the id of the task it
+>   should come after, in that task's phase.
+>
+> Without `after`, a new or moved item goes last.
 >
 > `status` is one of:
 >
@@ -196,6 +199,10 @@ code as the zod schemas' `.describe()` text, so the agent's docs and the validat
 > - `{ kind: "blocked", on, by? }`: `on` is what it's waiting for; `by` is the id of a blocking
 >   task.
 > - `{ kind: "skipped", why }`
+>
+> There is no `broken` status. If your own work fails (a build breaks, a deploy fails, you are
+> stuck), set `{ kind: "needs-you", ask }` with the error as the `ask`. Do not leave it `doing`:
+> that hides the failure from the user.
 >
 > `body` replaces the whole markdown body. Put notes, verification steps, and a checklist there.
 > `- [ ]` / `- [x]` lines are counted as the task's steps.
@@ -209,11 +216,40 @@ code as the zod schemas' `.describe()` text, so the agent's docs and the validat
 - `blocked_by` and `after` must name an existing id (or one created in the same batch).
 - A new task needs `phase` and `title`. A new phase needs `title`.
 - The whole batch is checked against the result state before any file is written.
-- Writes are all-or-nothing: write every new file to a temp name in the project directory, then
-  rename all of them into place. Renames for renumbering happen in the same step.
+- Writes are all-or-nothing, and follow the on-disk write protocol below.
 - One `apply` at a time per project: take an exclusive lock file (`<project>/.lock`) for the whole
   call. A second caller waits, then fails with a clear error after a timeout.
 - Frontmatter is written with a real YAML library, quoted where needed (`pr: "#204"`).
+- There is no `broken` status. When an agent's own work fails, the task is `needs-you` with the
+  error as the `ask`. `doing` would hide the failure.
+
+### On-disk write protocol
+
+`planApply` returns a `Plan`: an ordered list of steps. The MCP server runs them in order, with no
+other logic. Every path is relative to the project directory.
+
+1. Take the lock: create `<project>/.lock` exclusively. Hold it until the last step is done.
+2. `write` steps: write each new or changed file to a temp name in the project directory. Temp names
+   start with a dot: `.tmp-<n>-<name>`.
+3. `rename` steps, in this order:
+   1. Renumber renames: move existing files to their new paths (new prefix, new phase folder).
+   2. Temp renames: move each temp file to its final path. This replaces the old content.
+
+   Create the parent folder of each target if it does not exist.
+
+4. `remove` steps: delete old phase folders that are now empty. Old paths go last.
+5. Release the lock.
+
+If a step fails before the renames, delete the temps and stop: nothing changed. A crash can leave
+temp files. Readers ignore them, and the next `apply` overwrites them.
+
+Rules for readers (`parseProject`, the desktop watcher):
+
+- Ignore every path that has a segment starting with a dot (`.lock`, `.tmp-*`, `.DS_Store`).
+- The watcher debounces changes for 100ms, then re-reads the whole project. A read during the
+  renames can see a stale or briefly inconsistent tree. The next debounced read is correct.
+- `parseProject` does not throw on a duplicate id, because a read during a rename can see the same
+  file at its old and new paths. It keeps the first one in file order.
 
 ## Architecture
 
@@ -234,8 +270,9 @@ cannot disagree.
 - zod schemas for frontmatter, ops, and tool inputs/outputs. Types come from `z.infer`.
 - `parseProject(files: ReadonlyMap<string, string>): Project`: paths relative to the project
   directory, to the project model (phases, tasks, ids, labels, derived values, log entries).
-- `planApply(current: Project, input: ApplyInput): Plan | ApplyError`: checks the batch and returns
-  the file writes and renames. It does not touch the disk.
+- `planApply(current: Project, input: unknown, now: Date): Plan | ApplyError`: validates the input,
+  checks the batch, and returns the steps of the on-disk write protocol. It does not touch the disk.
+  `now` is a parameter so plans are deterministic.
 - `render(project)` helpers the tools return (`get_project` shape, `needs_me` shape).
 - Markdown body stays a string. The core never parses markdown except to count checkboxes and split
   `log.md` entries.
@@ -294,7 +331,7 @@ is in a text input.
   (`data-highlighted:bg-focus`). Put `@layer ui-sdk;` above `@import "tailwindcss";`.
 - Keep the mockup's paper grain overlay and `<meta name="darkreader-lock">`.
 
-### Rex keys (last milestone, optional)
+### Rex keys (last milestone)
 
 `c` and `o` shell out to `rex` when the project has a `rex:` session id. They are one command per
 key press; nothing polls Rex.
@@ -303,8 +340,8 @@ key press; nothing polls Rex.
   coordinator's prompt with a reference to the item under the cursor.
 - `o`: `rex split -s <rex> --split=right --ratio 40 -- nvim -R <path>`.
 
-Needs `tauri-plugin-shell` with an allowlist for the `rex` binary only. If the user decides against
-Rex integration, drop this milestone and the `rex` field.
+Needs `tauri-plugin-shell` with an allowlist for the `rex` binary only. Ship `c` first, then `o`.
+Both keys do nothing when the project has no `rex` field.
 
 ## Milestones
 
@@ -320,16 +357,19 @@ Each milestone ends with `bun run validate` green and the listed check passing.
    the files on disk and a re-parse. A test runs two `apply` calls at once and asserts both land and
    the log has both entries.
 3. **Desktop shell.** Tauri v2 app that lists projects from `~/.driver` and live-reloads on file
-   change. Fixture `FileSource` for browser dev. _Check:_ `bun tauri dev` opens the window; editing
-   a fixture file updates the page within a second.
+   change. Fixture `FileSource` for browser dev. The keyboard list primitive (ui-sdk list and focus
+   behaviors, single cursor, `j`/`k`). _Check:_ `bun tauri dev` opens the window; editing a fixture
+   file updates the page within a second; one test drives the list with keys and passes
+   `expectNoDiagnostics`.
 4. **Project page to parity with the mockup.** Sidebar, header, headline, needs you, blocked,
    recent, phases, reader pane with rendered and raw views, both themes. _Check:_ side-by-side
    screenshots against `mockups/driver.html` with the same fixture data.
-5. **Keyboard.** Every key in the mockup's `?` sheet. Palette, filter, help, toasts. _Check:_
-   Playwright against the browser build with the fixture source drives the full key flow (move, open
-   reader, focus reader, raw, filter, palette jump across projects, fold, `b`, `g n`) with no mouse;
-   `@solidjs/diagnostics` `expectNoDiagnostics` on the main flows.
-6. **Rex keys (optional).** See above.
+5. **Keyboard.** Every key in the mockup's `?` sheet, on top of the M3 list primitive. Palette,
+   filter, help, toasts. _Check:_ Playwright against the browser build with the fixture source
+   drives the full key flow (move, open reader, focus reader, raw, filter, palette jump across
+   projects, fold, `b`, `g n`) with no mouse; `@solidjs/diagnostics` `expectNoDiagnostics` on the
+   main flows.
+6. **Rex keys.** See above. Ship `c` first, then `o`.
 
 ## Verification for the user
 
@@ -347,10 +387,12 @@ bun --cwd apps/desktop tauri dev
 3. In a terminal, ask a coordinator with the MCP server to mark `t4-agent-skills` done. The row
    turns sage and the headline goes to `37%` without a reload.
 
-## Open decisions
+## Resolved decisions
 
-- `broken` as a separate status (agent's own failure, shown in the attention area) or just `doing`
-  with the error in the body. Current plan: no `broken`.
-- Rex keys: keep (milestone 6) or drop.
-- Whether the MCP server also exposes a `driver` skill/prompt for coordinators, or the tool
-  descriptions are enough. Current plan: tool descriptions only.
+- No `broken` status. An agent's own failure is `needs-you` with the error as the `ask`, not
+  `doing`, which hides it. The `apply` tool description says so.
+- Rex keys stay (milestone 6). `c` ships first, `o` second. `rex` stays optional: `create_project`
+  sets it only when the agent passes it, and nothing guesses it.
+- Tool descriptions only, no skill or prompt. The file contract (status kinds, the fields each one
+  needs, "failures are `needs-you`") lives in the `create_project` and `apply` `.describe()` text,
+  made from the zod schemas where practical.
