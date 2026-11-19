@@ -11,6 +11,7 @@
     "format": "vp fmt",
     "lint": "vp lint --fix",
     "check": "vp check",
+    "e2e:desktop": "bun run --cwd apps/desktop e2e",
     "test": "bun test ./packages && bun run --cwd apps/desktop test",
     "validate": "vp check && bun run test"
   },

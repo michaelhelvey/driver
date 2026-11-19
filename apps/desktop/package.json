@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
+    "e2e": "tauri build --debug --no-bundle --features e2e && bun scripts/e2e.ts",
     "build": "vp build",
     "tauri": "tauri",
     "test": "bun --conditions=browser --conditions=development test --pass-with-no-tests"
@@ -25,7 +26,15 @@
     "@solidjs/vite-plugin": "3.0.1",
     "@tailwindcss/vite": "4.3.5",
     "@tauri-apps/cli": "2.12.6",
+    "@types/node": "26.6.6",
+    "@wdio/cli": "9.31.9",
+    "@wdio/globals": "9.31.3",
+    "@wdio/local-runner": "9.31.9",
+    "@wdio/mocha-framework": "9.31.9",
+    "@wdio/spec-reporter": "9.31.2",
+    "@wdio/tauri-service": "1.5.1",
     "playwright": "1.65.1",
-    "tailwindcss": "4.3.5"
+    "tailwindcss": "4.3.5",
+    "webdriverio": "9.31.9"
   }
 }
