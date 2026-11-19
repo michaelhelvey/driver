@@ -196,7 +196,7 @@ tasks. A typical `apply` after that:
     { "op": "task", "id": "t4-coa", "pr": "#52", "status": { "kind": "done" } },
     {
       "op": "task",
-      "id": "t4-auth",
+      "id": "t4-authorization-platform",
       "status": { "kind": "needs-you", "ask": "cold start +290ms: keep the 500ms reserve?" }
     }
   ]
