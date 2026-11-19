@@ -1,10 +1,47 @@
-# driver
+<p align="center">
+  <img src="docs/assets/icon.png" width="128" height="128" alt="driver app icon">
+</p>
 
-driver is a read-only desktop view of agent-run projects. A coordinator agent keeps each project as
-a folder of plain markdown files under `~/.driver/`, through a local MCP server. The desktop app
-watches those files and shows, per project, what needs you, what is blocked, and how far along it
-is. You read; agents write. You never edit the files or the UI; you talk to the coordinator in your
-terminal.
+<h1 align="center">driver</h1>
+
+<p align="center">
+  <strong>A read-only desktop view of the projects your agents run.</strong>
+  <br>
+  Agents write plain markdown. You see what needs you.
+</p>
+
+<p align="center">
+  <img alt="macOS" src="https://img.shields.io/badge/macOS-only-b8532b?style=flat-square&logo=apple&logoColor=f4ede1&labelColor=2b241e">
+  <img alt="bun 1.4+" src="https://img.shields.io/badge/bun-1.4%2B-60754a?style=flat-square&logo=bun&logoColor=f4ede1&labelColor=2b241e">
+  <img alt="Tauri v2" src="https://img.shields.io/badge/Tauri-v2-a87410?style=flat-square&logo=tauri&logoColor=f4ede1&labelColor=2b241e">
+  <img alt="MCP over stdio" src="https://img.shields.io/badge/MCP-stdio-993a50?style=flat-square&logo=modelcontextprotocol&logoColor=f4ede1&labelColor=2b241e">
+</p>
+
+<p align="center">
+  <img src="docs/assets/hero.jpg" width="100%" alt="driver in the cocoa theme, tracking its own build: the driver project is 84% done with 11 of 13 tasks, one task needs you (push to a remote, asking where the repo should live), the phases list shows four phases with their task bars, and the reader on the right shows that task's frontmatter and its two-step checklist">
+</p>
+
+<p align="center">
+  <sub>driver tracking its own build. The headline says how far along it is, <b>needs you</b> is
+  your to-do list, and the reader on the right opens the task file behind the row under the
+  cursor.</sub>
+</p>
+
+<p align="center">
+  <a href="#quickstart">Quickstart</a> ·
+  <a href="#the-desktop-app">The app</a> ·
+  <a href="#keys">Keys</a> ·
+  <a href="#the-tools">Tools</a> ·
+  <a href="#file-format">File format</a> ·
+  <a href="#development">Development</a>
+</p>
+
+A coordinator agent keeps each project as a folder of plain markdown files under `~/.driver/`,
+through a local MCP server. The desktop app watches those files and shows, per project, what needs
+you, what is blocked, and how far along it is. You read; agents write. You never edit the files or
+the UI; you talk to the coordinator in your terminal.
+
+## How it works
 
 ```mermaid
 flowchart LR
@@ -30,11 +67,12 @@ Then open driver, and in any project tell your coordinator:
 
 > track this in driver
 
-`bun run setup` builds `driver.app` into `/Applications` (quitting and restarting it if it is
-running), creates `~/.driver`, and registers the MCP server in OpenCode's global config, pointing at
-this checkout. Rerun it after you pull, or after you move the checkout: it upgrades the app and
-fixes the registered path, and changes nothing that is already right. `bun run setup --no-app` only
-registers the MCP server. The first build takes a couple of minutes (Rust).
+That's it. `bun run setup` builds `driver.app` into `/Applications` (quitting and restarting it if
+it is running), creates `~/.driver`, and registers the MCP server in OpenCode's global config,
+pointing at this checkout. Rerun it after you pull, or after you move the checkout: it upgrades the
+app and fixes the registered path, and changes nothing that is already right.
+`bun run setup --no-app` only registers the MCP server. The first build takes a couple of minutes
+(Rust).
 
 The MCP server sends its habits (how to start a project, `get_project` before every `apply`, one
 `apply` per event, `needs-you` when stuck) as its `instructions`, which OpenCode puts in the
@@ -42,7 +80,9 @@ coordinator's system prompt, so a project needs no `AGENTS.md` snippet. The text
 `DRIVER_INSTRUCTIONS` in [`packages/core/src/tools.ts`](packages/core/src/tools.ts).
 
 <details>
-<summary>Manual setup</summary>
+<summary><strong>Manual setup</strong></summary>
+
+<br>
 
 What `bun run setup` does, by hand, from the checkout:
 
@@ -65,7 +105,10 @@ Check it with `opencode mcp list`. With OpenCode's default Code Mode, agents cal
 
 </details>
 
-### `DRIVER_ROOT`
+<details>
+<summary><strong>Another root: <code>DRIVER_ROOT</code></strong></summary>
+
+<br>
 
 Both the MCP server and the app read projects from `DRIVER_ROOT`, default `~/.driver`.
 
@@ -79,22 +122,7 @@ Both the MCP server and the app read projects from `DRIVER_ROOT`, default `~/.dr
   the app with `open -a driver --env DRIVER_ROOT=/abs/path`. An app opened from Finder or Spotlight
   does not see your shell's env, so it always uses `~/.driver`.
 
-## The tools
-
-| tool             | what the agent sees (abridged)                                                                                           |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `list_projects`  | every project's slug, title, percent, needs-you and blocked counts, last update                                          |
-| `get_project`    | one project's state: summary, phases, tasks with labels and statuses, 10 newest log entries. "Call this before `apply`." |
-| `read`           | raw markdown of tasks, phases, `"project"` or `"log"`, frontmatter included                                              |
-| `needs_me`       | every `needs-you` and `blocked` task across projects                                                                     |
-| `create_project` | a new project with `project.md` and an empty `log.md`                                                                    |
-| `apply`          | "The only way to change a project." One all-or-nothing batch of ops plus a log line                                      |
-
-The full descriptions live in the zod schemas' `.describe()` text in
-[`packages/core/src/tools.ts`](packages/core/src/tools.ts) and
-[`packages/core/src/schemas.ts`](packages/core/src/schemas.ts), and the habits in
-`DRIVER_INSTRUCTIONS` in [`packages/core/src/tools.ts`](packages/core/src/tools.ts). That text is
-what agents read, so it is the source of truth for every rule below.
+</details>
 
 ## Using it in a project
 
@@ -152,6 +180,14 @@ prefixes, change when tasks move, and are display only. Agents refer to tasks by
 `↵` opens the row under the cursor in the reader on the right: the file rendered as markdown, with
 its frontmatter as a table. `r` shows the raw file, exactly as on disk.
 
+### Two themes
+
+`t` switches between cocoa (above) and paper, and the app remembers the choice.
+
+<p align="center">
+  <img src="docs/assets/paper.png" width="720" alt="driver in the paper theme on the bundled pdk-2-sentry fixture: 33% done, 9 of 27 tasks, two tasks that need you and one blocked task">
+</p>
+
 ### Keys
 
 Press `?` in the app for this sheet. It is the `KEYS` table in
@@ -197,6 +233,23 @@ re t4-coa (t4-coa): /Users/you/.driver/pdk-2-sentry/03a-framework-apps/01-t4-coa
 A task names its id and title, a phase header its id and title, the project header the project's
 slug and title, and the recent-log row `log`. The path is the one `y` copies.
 
+## The tools
+
+| tool             | what the agent sees (abridged)                                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `list_projects`  | every project's slug, title, percent, needs-you and blocked counts, last update                                          |
+| `get_project`    | one project's state: summary, phases, tasks with labels and statuses, 10 newest log entries. "Call this before `apply`." |
+| `read`           | raw markdown of tasks, phases, `"project"` or `"log"`, frontmatter included                                              |
+| `needs_me`       | every `needs-you` and `blocked` task across projects                                                                     |
+| `create_project` | a new project with `project.md` and an empty `log.md`                                                                    |
+| `apply`          | "The only way to change a project." One all-or-nothing batch of ops plus a log line                                      |
+
+The full descriptions live in the zod schemas' `.describe()` text in
+[`packages/core/src/tools.ts`](packages/core/src/tools.ts) and
+[`packages/core/src/schemas.ts`](packages/core/src/schemas.ts), and the habits in
+`DRIVER_INSTRUCTIONS` in [`packages/core/src/tools.ts`](packages/core/src/tools.ts). That text is
+what agents read, so it is the source of truth for every rule below.
+
 ## File format
 
 Everything is plain markdown with YAML frontmatter. You can `cat`, `grep`, and `git diff` all of it.
@@ -215,12 +268,48 @@ Ids are the names without the `NN-` prefix. `apply` owns the prefixes, renames f
 move, sets `updated`, and writes all-or-nothing under a `<project>/.lock`. Files and folders that
 start with a dot (`.lock`, `.tmp-*`) are ignored by readers.
 
-**Do not hand-edit project files while agents are running.** Ask the coordinator to make the change
-through `apply`. A hand edit races `apply` and can leave a project that does not parse. The full
-spec is in [`docs/plan.md`](docs/plan.md#file-layout). Real examples are in
+> [!WARNING]
+> **Do not hand-edit project files while agents are running.** Ask the coordinator to make the
+> change through `apply`. A hand edit races `apply` and can leave a project that does not parse.
+
+The full spec is in [`docs/plan.md`](docs/plan.md#file-layout). Real examples are in
 [`packages/core/fixtures/`](packages/core/fixtures).
 
+## Troubleshooting
+
+<details>
+<summary><strong>Common failures and what to do</strong></summary>
+
+<br>
+
+- **`apply` fails with `<root>/<project>/.lock is still there after 10000ms`.** A crashed `apply`
+  left its lock behind. The message names the path. Delete that file, but only if no `apply` is
+  running. `DRIVER_LOCK_TIMEOUT_MS` changes the wait.
+- **`DRIVER_ROOT must be an absolute path`.** You set `DRIVER_ROOT` to a relative path or one
+  starting with `~`, which is not expanded in JSON configs. Use the full path.
+- **The app shows "This project's files do not parse."** The error under it names the file and the
+  field. Usually a hand edit. Ask the coordinator to fix it with `apply`, or fix the file by hand
+  while no agent is running.
+- **The app is empty but the folder has projects.** The folder did not exist when the app started:
+  restart the app. Or the app and the MCP server use different roots: the app shows its root in the
+  sidebar footer and the status line.
+- **The agent doesn't see the tools.** Rerun `bun run setup --no-app`, then `opencode mcp list`.
+  Start the server by hand to see startup errors: `bun packages/mcp/src/main.ts` prints
+  `{"started":"/Users/you/.driver"}` to stderr and then waits on stdin.
+- **`bun run setup` fails.** The `✗` line says what failed and the `fix:` line under it what to run.
+  Fix it and rerun; every step is safe to repeat.
+- **What did the server do?** It logs each tool call to stderr as one JSON line:
+  `{"tool":"apply","project":"pdk-2-sentry","ops":1,"ms":12,"error":null}`. stdout carries only MCP
+  messages. Your harness keeps the server's stderr in its MCP logs.
+
+</details>
+
 ## Development
+
+<details>
+<summary><strong>Commands, layout, and what <code>bun run validate</code> checks</strong></summary>
+
+<br>
 
 | what                                        | command                                                                    |
 | ------------------------------------------- | -------------------------------------------------------------------------- |
@@ -243,7 +332,8 @@ spec is in [`docs/plan.md`](docs/plan.md#file-layout). Real examples are in
   for its layout and scripts.
 - `packages/core/fixtures/`: four sample projects (`pdk-2-sentry`, `driver`, `billing-ledger-v2`,
   `onboarding-docs`) in `apply`'s canonical form. Tests, the browser build, and the e2e run use
-  them. To try the real app on them without touching `~/.driver`, use the `DRIVER_ROOT` line above.
+  them. To try the real app on them without touching `~/.driver`, use the fixtures line in the table
+  above.
 
 `bun run validate` must be green before work is done. It ends with `bun run e2e:web`, which drives
 the browser build in the installed Google Chrome (Playwright's `channel: "chrome"`), so Chrome must
@@ -252,24 +342,12 @@ writes to the real system clipboard (the `y` and `c` checks), so expect your cli
 Every verification lever, and the steps to accept a change by hand, are in
 [`.agents/skills/verify-driver/SKILL.md`](.agents/skills/verify-driver/SKILL.md).
 
-## Troubleshooting
+The README's images live in `docs/assets/`. `hero.jpg` is a window capture of the installed app,
+resized with `magick <capture> -strip -resize 1600x -quality 95 -sampling-factor 4:4:4 hero.jpg`.
+`paper.png` comes from the browser build:
+`bun apps/desktop/scripts/screenshot.ts http://localhost:1420/ /tmp/paper.png 2 1440x900`, then
+`magick /tmp/paper.png -strip -dither None -colors 256 PNG8:docs/assets/paper.png`.
+`bun apps/desktop/scripts/readme-preview.ts` renders the README offline, checks its links, and
+screenshots it in light and dark.
 
-- **`apply` fails with `<root>/<project>/.lock is still there after 10000ms`.** A crashed `apply`
-  left its lock behind. The message names the path. Delete that file, but only if no `apply` is
-  running. `DRIVER_LOCK_TIMEOUT_MS` changes the wait.
-- **`DRIVER_ROOT must be an absolute path`.** You set `DRIVER_ROOT` to a relative path or one
-  starting with `~`, which is not expanded in JSON configs. Use the full path.
-- **The app shows "This project's files do not parse."** The error under it names the file and the
-  field. Usually a hand edit. Ask the coordinator to fix it with `apply`, or fix the file by hand
-  while no agent is running.
-- **The app is empty but the folder has projects.** The folder did not exist when the app started:
-  restart the app. Or the app and the MCP server use different roots: the app shows its root in the
-  sidebar footer and the status line.
-- **The agent doesn't see the tools.** Rerun `bun run setup --no-app`, then `opencode mcp list`.
-  Start the server by hand to see startup errors: `bun packages/mcp/src/main.ts` prints
-  `{"started":"/Users/you/.driver"}` to stderr and then waits on stdin.
-- **`bun run setup` fails.** The `✗` line says what failed and the `fix:` line under it what to run.
-  Fix it and rerun; every step is safe to repeat.
-- **What did the server do?** It logs each tool call to stderr as one JSON line:
-  `{"tool":"apply","project":"pdk-2-sentry","ops":1,"ms":12,"error":null}`. stdout carries only MCP
-  messages. Your harness keeps the server's stderr in its MCP logs.
+</details>
