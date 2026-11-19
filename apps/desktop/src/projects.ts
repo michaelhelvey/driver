@@ -2,11 +2,12 @@ import { parseProject, type Project } from "@driver/core";
 import { slugOf, type FileSource, type ProjectFiles } from "./source/source.ts";
 
 /**
- * One project as the app shows it: parsed, or the error that kept it from parsing. An error
- * names the file it is about, so it is shown in place of that project only.
+ * One project as the app shows it: parsed, with its files as they are on disk for the reader, or
+ * the error that kept it from parsing. An error names the file it is about, so it is shown in
+ * place of that project only.
  */
 export type Entry =
-  | { kind: "ok"; slug: string; project: Project }
+  | { kind: "ok"; slug: string; project: Project; files: ProjectFiles }
   | { kind: "error"; slug: string; message: string };
 
 /**
@@ -19,7 +20,7 @@ export type Entry =
  */
 export function toEntry(slug: string, files: ProjectFiles): Entry {
   try {
-    return { kind: "ok", slug, project: parseProject(files) };
+    return { kind: "ok", slug, project: parseProject(files), files };
   } catch (error) {
     return { kind: "error", slug, message: error instanceof Error ? error.message : String(error) };
   }

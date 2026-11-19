@@ -1,11 +1,16 @@
 import type { Status } from "@driver/core";
 
-/** The glyph and color class of each task status, as the mockup draws them. */
-export const STATUS: Readonly<Record<Status["kind"], { glyph: string; color: string }>> = {
-  "needs-you": { glyph: "◆", color: "text-amber" },
-  blocked: { glyph: "✕", color: "text-plum" },
-  doing: { glyph: "◐", color: "text-accent" },
-  todo: { glyph: "○", color: "text-muted" },
-  done: { glyph: "●", color: "text-sage" },
-  skipped: { glyph: "–", color: "text-faint" },
+/**
+ * How the mockup draws each task status: its glyph, the glyph's color class, and the color
+ * class of its segment in a phase's bar.
+ */
+export const STATUS: Readonly<
+  Record<Status["kind"], { glyph: string; color: string; bar: string }>
+> = {
+  "needs-you": { glyph: "◆", color: "text-amber", bar: "bg-amber" },
+  blocked: { glyph: "✕", color: "text-plum", bar: "bg-plum" },
+  doing: { glyph: "◐", color: "text-accent", bar: "bg-accent" },
+  todo: { glyph: "○", color: "text-muted", bar: "bg-faint" },
+  done: { glyph: "●", color: "text-sage", bar: "bg-sage" },
+  skipped: { glyph: "–", color: "text-faint", bar: "bg-faint" },
 };
