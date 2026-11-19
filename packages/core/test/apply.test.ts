@@ -169,6 +169,61 @@ describe("planApply", () => {
     expect(project.tasks.map((t) => t.label)).toEqual(current.tasks.map((t) => t.label));
   });
 
+  it.each([
+    {
+      name: "an existing task",
+      ops: [{ op: "task", id: "t4-directory", after: null }],
+      id: "t4-directory",
+      path: "03a-framework-apps/01-t4-directory.md",
+      next: { id: "t4-coa", label: "03a.2" },
+    },
+    {
+      name: "a new task",
+      ops: [{ op: "task", id: "new-one", phase: "canaries", title: "new one", after: null }],
+      id: "new-one",
+      path: "02-canaries/01-new-one.md",
+      next: { id: "t4-transit-times", label: "02.2" },
+    },
+    {
+      name: "a task moved to another phase",
+      ops: [{ op: "task", id: "t4-user-info", phase: "framework-apps", after: null }],
+      id: "t4-user-info",
+      path: "03a-framework-apps/01-t4-user-info.md",
+      next: { id: "t4-coa", label: "03a.2" },
+    },
+    {
+      name: "an existing phase",
+      ops: [{ op: "phase", id: "cleanup", after: null }],
+      id: "ssm-alias",
+      path: "00-cleanup/01-ssm-alias.md",
+      next: { id: "plan-doc", label: "01.1" },
+    },
+    {
+      name: "a new phase",
+      ops: [
+        { op: "phase", id: "prework", title: "prework", after: null },
+        { op: "task", id: "new-one", phase: "prework", title: "new one" },
+      ],
+      id: "new-one",
+      path: "00-prework/01-new-one.md",
+      next: { id: "plan-doc", label: "01.1" },
+    },
+  ])("after: null puts $name first", (c) => {
+    const { project } = run(c.ops);
+    expect(task(project, c.id).path).toBe(c.path);
+    expect(task(project, c.next.id).label).toBe(c.next.label);
+    expect(project.tasks).toHaveLength(current.tasks.length + (c.id === "new-one" ? 1 : 0));
+  });
+
+  it("after: null on an item that is already first moves nothing", () => {
+    const { plan, project } = run([
+      { op: "phase", id: "pdk-2.0", after: null },
+      { op: "task", id: "t4-coa", after: null },
+    ]);
+    expect(plan.steps.filter((s) => s.kind === "move")).toEqual([]);
+    expect(project.tasks.map((t) => t.label)).toEqual(current.tasks.map((t) => t.label));
+  });
+
   it("reorders a task with after and renumbers the phase", () => {
     const { project } = run([{ op: "task", id: "t4-coa", after: "t4-directory" }]);
     const phase = project.phases.find((p) => p.id === "framework-apps");

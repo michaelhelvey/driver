@@ -127,7 +127,7 @@ export const ApplyToolInputSchema = ApplyInputSchema.extend({ slug: SlugSchema }
     '`log` is required: one or two sentences saying what happened and the evidence for it ("t4-coa merged as #52; beta deploy 4415 is green"). It is added to `log.md`. Describe what happened, not what you plan to do.',
     "Each op creates the item if the id is new, or updates it if it already exists. Fields you leave out stay unchanged. There is no delete: mark work that's no longer needed as `skipped` and give a reason.",
     bullets(OpSchema.options, "op"),
-    "Without `after`, a new or moved item goes last.",
+    "Without `after`, a new or moved item goes last, and an existing item stays where it is. `after: null` puts it first.",
     STATUS_CONTRACT,
     "`body` replaces the whole markdown body. Put notes, verification steps, and a checklist there. `- [ ]` / `- [x]` lines are counted as the task's steps.",
     "Files are renamed and renumbered, and `updated` is set, for you.",

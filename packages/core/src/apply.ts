@@ -78,7 +78,7 @@ const takeOut = <T extends { id: string }>(items: T[], id: string): T => {
   return item ?? fail(`no "${id}" to move`);
 };
 
-const putAfter = <T extends { id: string }>(items: T[], after: string, item: T): void => {
+const putAfter = <T extends { id: string }>(items: T[], after: string | null, item: T): void => {
   items.splice(items.findIndex((candidate) => candidate.id === after) + 1, 0, item);
 };
 
@@ -86,7 +86,7 @@ const reposition = <T extends { id: string }>(
   draft: Draft,
   from: T[],
   to: T[],
-  ids: { id: string; after: string },
+  ids: { id: string; after: string | null },
 ): void => {
   const at = from.findIndex((item) => item.id === ids.id);
   putAfter(to, ids.after, takeOut(from, ids.id));
@@ -151,15 +151,15 @@ const applyTaskOp = (draft: Draft, op: TaskOp): void => {
   draft.touched.add(op.id);
 };
 
-const placePhase = (draft: Draft, id: string, after: string): void => {
+const placePhase = (draft: Draft, id: string, after: string | null): void => {
   check(
-    after !== id && findPhase(draft, after) !== undefined,
+    after === null || (after !== id && findPhase(draft, after) !== undefined),
     `phase "${id}": no phase "${after}" to go after`,
   );
   reposition(draft, draft.data.phases, draft.data.phases, { id, after });
 };
 
-const placeTask = (draft: Draft, op: TaskOp, after: string): void => {
+const phaseAfter = (draft: Draft, op: TaskOp, after: string): PhaseData => {
   check(after !== op.id, `task "${op.id}" cannot go after itself`);
   const target =
     findTask(draft, after) ?? refuse(`task "${op.id}": no task "${after}" to go after`);
@@ -167,8 +167,13 @@ const placeTask = (draft: Draft, op: TaskOp, after: string): void => {
     op.phase === undefined || op.phase === target.phase.id,
     `task "${op.id}": "${after}" is not in phase "${op.phase}"`,
   );
+  return target.phase;
+};
+
+const placeTask = (draft: Draft, op: TaskOp, after: string | null): void => {
   const self = findTask(draft, op.id) ?? fail(`no task "${op.id}"`);
-  reposition(draft, self.phase.tasks, target.phase.tasks, { id: op.id, after });
+  const to = after === null ? self.phase : phaseAfter(draft, op, after);
+  reposition(draft, self.phase.tasks, to.tasks, { id: op.id, after });
 };
 
 const pad = (n: number): string => String(n).padStart(2, "0");

@@ -183,12 +183,13 @@ code as the zod schemas' `.describe()` text, so the agent's docs and the validat
 >
 > - `{ op: "project", summary?, body? }`: update the project summary, or the rest of `project.md`.
 > - `{ op: "phase", id, title?, after?, body? }`: create, update, or reorder a phase. `after` is the
->   id of the phase it should come after.
+>   id of the phase it should come after, or `null` to put it first.
 > - `{ op: "task", id, phase?, after?, title?, repo?, pr?, status?, body? }`: create, update, move,
 >   or reorder a task. Setting `phase` moves it to another phase. `after` is the id of the task it
->   should come after, in that task's phase.
+>   should come after, in that task's phase, or `null` to put it first in its phase.
 >
-> Without `after`, a new or moved item goes last.
+> Without `after`, a new or moved item goes last, and an existing item stays where it is.
+> `after: null` puts it first.
 >
 > `status` is one of:
 >
@@ -214,6 +215,7 @@ code as the zod schemas' `.describe()` text, so the agent's docs and the validat
 - `status` is a tagged union in the API. It is stored flat in frontmatter (`status` + `ask` /
   `blocked_on` / `blocked_by` / `why`). Changing status removes the fields of the old status.
 - `blocked_by` and `after` must name an existing id (or one created in the same batch).
+  `after: null` means first.
 - A new task needs `phase` and `title`. A new phase needs `title`.
 - The whole batch is checked against the result state before any file is written.
 - Writes are all-or-nothing, and follow the on-disk write protocol below.

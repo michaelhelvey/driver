@@ -195,11 +195,11 @@ export const PhaseOpSchema = z
     op: z.literal("phase"),
     id: IdSchema,
     title: LineSchema.optional(),
-    after: IdSchema.optional(),
+    after: IdSchema.nullable().optional(),
     body: BodySchema.optional(),
   })
   .describe(
-    "create, update, or reorder a phase. `after` is the id of the phase it should come after.",
+    "create, update, or reorder a phase. `after` is the id of the phase it should come after, or `null` to put it first.",
   );
 
 /**
@@ -213,7 +213,7 @@ export const TaskOpSchema = z
     op: z.literal("task"),
     id: IdSchema,
     phase: IdSchema.optional(),
-    after: IdSchema.optional(),
+    after: IdSchema.nullable().optional(),
     title: LineSchema.optional(),
     repo: LineSchema.optional(),
     pr: LineSchema.optional(),
@@ -221,7 +221,7 @@ export const TaskOpSchema = z
     body: BodySchema.optional(),
   })
   .describe(
-    "create, update, move, or reorder a task. Setting `phase` moves it to another phase. `after` is the id of the task it should come after, in that task's phase.",
+    "create, update, move, or reorder a task. Setting `phase` moves it to another phase. `after` is the id of the task it should come after, in that task's phase, or `null` to put it first in its phase.",
   );
 
 /**
